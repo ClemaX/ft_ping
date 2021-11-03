@@ -1,4 +1,4 @@
-NAME = skeleton
+NAME = ft_ping
 
 # Compiler and linker
 CC = clang
