@@ -23,7 +23,10 @@ LIBARS = $(notdir $(LIBS))
 # Sources
 INCS = $(LIBINCS) $(INCDIR)
 SRCS = $(addprefix $(SRCDIR)/,\
+	icmp_packet.c\
+	ip_utils.c\
 	main.c\
+	socket_utils.c\
 )
 
 OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
