@@ -1,0 +1,7 @@
+.vscode
+obj/
+.dockerignore
+.editorconfig
+.gitignore
+Dockerfile
+ft_ping
