@@ -7,7 +7,7 @@
 #include <netdb.h>
 #include <stdio.h>
 
-int16_t	ip_checksum(const void *data, size_t size)
+int16_t			ip_checksum(const void *data, size_t size)
 {
 	int			sum = 0;
 
