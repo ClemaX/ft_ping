@@ -12,7 +12,7 @@ int16_t			ip_checksum(const void *data, size_t size)
 	int			sum = 0;
 
 	for (size_t i = 0; i < size / 2; i++)
-		sum += ((const uint16_t*)data)[0];
+		sum += ((const uint16_t*)data)[i];
 
 	if (size % 2 != 0)
 		sum += ((const uint8_t*)data)[size];
