@@ -18,7 +18,7 @@ static int	invalid_arguments(const char *name)
 	return 1;
 }
 
-int	ping(const struct sockaddr *addr, int sd, int id, unsigned count)
+int	ping(const struct sockaddr_in *addr, int sd, int id, unsigned count)
 {
 	ssize_t		ret;
 	unsigned	i;
@@ -33,9 +33,9 @@ int	ping(const struct sockaddr *addr, int sd, int id, unsigned count)
 			packet = icmp_echo_packet(id, i);
 			ret = sendto(sd, packet, sizeof(*packet), 0, addr, sizeof(*addr));
 			if (ret > 0)
-				fprintf(stderr, "Successfully sent %zd bytes to %s\n", ret, inet_ntoa(*(struct in_addr *)&addr));
+				fprintf(stderr, "Successfully sent %zd bytes to %s\n", ret, inet_ntoa(addr->sin_addr));
 			else
-				perror(inet_ntoa(*(struct in_addr *)&addr));
+				perror(inet_ntoa(addr->sin_addr));
 			usleep(1000 * 1000);
 		}
 	}
@@ -47,7 +47,7 @@ int	ping(const struct sockaddr *addr, int sd, int id, unsigned count)
 			ret = sendto(sd, packet, sizeof(*packet), 0, addr, sizeof(*addr));
 			if (ret == 0)
 			{
-				fprintf(stderr, "Successfully sent packet to %s\n", inet_ntoa(*(struct in_addr *)&addr));
+				fprintf(stderr, "Successfully sent packet to %s\n", inet_ntoa(addr->sin_addr));
 			}
 			else
 				perror("sendto");
@@ -74,7 +74,7 @@ int	main(int ac, char **av)
 		ret = -(sd == -1);
 		if (ret == 0)
 		{
-			ping(address->ai_addr, sd, id, 0);
+			ping((struct sockaddr_in*)address->ai_addr, sd, id, 0);
 			ret += close(sd);
 		}
 		freeaddrinfo(address);
