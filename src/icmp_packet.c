@@ -1,32 +1,34 @@
 #include <icmp_packet.h>
+#include <netinet/in.h>
 
-icmp_packet	*icmp_echo_request(uint16_t id, uint16_t sequence)
+icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr, uint16_t id, uint16_t sequence)
 {
-	static icmp_packet	packet;
+	static icmp_packet	packet =
+	{
+		.ip_header =
+		{
+			.version = 4,
+			.ihl = sizeof(packet.ip_header) / 4,
+			.tos = 0,
+			.tot_len = sizeof(icmp_packet),
+			.id = 0,
+			.frag_off = 0,
+			.ttl = 64,
+			.protocol = IPPROTO_ICMP,
+		},
+		.icmp_message =
+		{
+			.icmp_type = ICMP_ECHO,
+			.icmp_code = 0,
+		}
+	};
 
-	packet.ip_header.version = 4;
-	packet.ip_header.ihl = sizeof(packet.ip_header) / 4;
+	packet.ip_header.daddr = addr->sin_addr.s_addr;
 
-	packet.ip_header.tos = 0;
-	packet.ip_header.tot_len = sizeof(icmp_packet);
-	packet.ip_header.id = 0;
-	packet.ip_header.frag_off = 0;
-	packet.ip_header.ttl = 64;
-	packet.ip_header.protocol = IPPROTO_ICMP;
+	packet.icmp_message.icmp_data[0] = 42;
 
-	packet.ip_header.saddr = htonl(INADDR_ANY);
-	packet.ip_header.daddr = htonl(INADDR_LOOPBACK);
-
-	packet.ip_header.check = 0;
-	packet.ip_header.check = ip_checksum(&packet.ip_header,
-		sizeof(packet.ip_header));
-
-	packet.icmp_message.icmp_type = ICMP_ECHO;
-
-	packet.icmp_message.icmp_code = 0;
-
-	packet.icmp_message.icmp_hun.ih_idseq.icd_id = id;
-	packet.icmp_message.icmp_hun.ih_idseq.icd_seq = sequence;
+	packet.icmp_message.icmp_id = id,
+	packet.icmp_message.icmp_seq = sequence,
 
 	packet.icmp_message.icmp_cksum = 0;
 	packet.icmp_message.icmp_cksum = ip_checksum(&packet.icmp_message,

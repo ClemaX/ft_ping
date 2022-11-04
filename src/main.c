@@ -39,7 +39,7 @@ static int	icmp_echo_send(const struct sockaddr_in *addr, int sd, int id, int se
 	icmp_packet		*request;
 	ssize_t			ret;
 
-	request = icmp_echo_request(id, sequence);
+	request = icmp_echo_request(addr, id, sequence);
 	ret = sendto(sd, request, sizeof(*request), 0, (const struct sockaddr*)addr, sizeof(*addr));
 
 	return -(ret <= 0);
