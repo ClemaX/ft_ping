@@ -7,7 +7,7 @@
 int	socket_raw()
 {
 	const int	include_header = 1;
-	int			sd = socket(AF_INET, SOCK_RAW, SOCK_RAW);
+	int			sd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
 	if (sd != -1)
 	{

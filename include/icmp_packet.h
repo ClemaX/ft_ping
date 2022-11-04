@@ -15,6 +15,6 @@ typedef struct					icmp_packet
 	icmp_message	icmp_message;
 }	__attribute__((__packed__))	icmp_packet;
 
-icmp_packet	*icmp_echo_packet(uint16_t id, uint16_t sequence);
+icmp_packet	*icmp_echo_request(uint16_t id, uint16_t sequence);
 
 #endif

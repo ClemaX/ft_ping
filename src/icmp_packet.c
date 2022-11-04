@@ -1,6 +1,6 @@
 #include <icmp_packet.h>
 
-icmp_packet	*icmp_echo_packet(uint16_t id, uint16_t sequence)
+icmp_packet	*icmp_echo_request(uint16_t id, uint16_t sequence)
 {
 	static icmp_packet	packet;
 
