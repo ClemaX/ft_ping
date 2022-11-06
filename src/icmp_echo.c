@@ -95,7 +95,7 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 				sizeof(response.icmp_header) + sizeof(response.payload),
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
-				ntohs(response.icmp_header.un.echo.id));
+				response.ip_header.ttl);
 
 			++(stats->received);
 		}
