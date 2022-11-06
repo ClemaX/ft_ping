@@ -1,7 +1,11 @@
-#include <icmp_packet.h>
+#include <string.h>
+
 #include <netinet/in.h>
 
-icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr, uint16_t id, uint16_t sequence)
+#include <icmp_packet.h>
+
+icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr,
+	uint16_t id, uint16_t sequence)
 {
 	static icmp_packet	packet =
 	{
@@ -16,23 +20,22 @@ icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr, uint16_t id, uint
 			.ttl = 64,
 			.protocol = IPPROTO_ICMP,
 		},
-		.icmp_message =
+		.icmp_header =
 		{
-			.icmp_type = ICMP_ECHO,
-			.icmp_code = 0,
-		}
+			.type = ICMP_ECHO,
+			.code = 0,
+		},
+		.payload = ICMP_ECHO_PAYLOAD,
 	};
 
 	packet.ip_header.daddr = addr->sin_addr.s_addr;
 
-	packet.icmp_message.icmp_data[0] = 42;
+	packet.icmp_header.un.echo.id = htons(id);
+	packet.icmp_header.un.echo.sequence = htons(sequence);
 
-	packet.icmp_message.icmp_id = id,
-	packet.icmp_message.icmp_seq = sequence,
-
-	packet.icmp_message.icmp_cksum = 0;
-	packet.icmp_message.icmp_cksum = ip_checksum(&packet.icmp_message,
-		sizeof(packet.icmp_message));
+	packet.icmp_header.checksum = 0;
+	packet.icmp_header.checksum = ip_checksum(&packet.icmp_header,
+		sizeof(packet.icmp_header) + sizeof(packet.payload));
 
 	return &packet;
 }

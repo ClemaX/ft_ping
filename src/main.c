@@ -1,29 +1,27 @@
-#include <asm-generic/errno-base.h>
-#include <asm-generic/errno.h>
-#include <asm-generic/socket.h>
-#include <bits/types/struct_iovec.h>
-#include <netinet/in.h>
-#include <stdint.h>
-#include <sys/types.h>
 #define _GNU_SOURCE
+
 #include <sys/socket.h>
 
+#include <stdint.h>
 #include <stdio.h>
+
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+
+#include <errno.h>
 
 #include <icmp_packet.h>
 #include <socket_utils.h>
 
-#include <arpa/inet.h>
-
-#include <netdb.h>
-#include <unistd.h>
-
-#include <errno.h>
 
 typedef struct	ping_stats
 {
 	unsigned	transmitted;
 	unsigned	received;
+	char		*host_name;
+	char		*host_presentation;
 }				ping_stats;
 
 ping_stats	stats;
@@ -34,7 +32,8 @@ static int	invalid_arguments(const char *name)
 	return 1;
 }
 
-static int	icmp_echo_send(const struct sockaddr_in *addr, int sd, int id, int sequence)
+static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
+	uint16_t id, uint16_t sequence)
 {
 	icmp_packet		*request;
 	ssize_t			ret;
@@ -45,17 +44,18 @@ static int	icmp_echo_send(const struct sockaddr_in *addr, int sd, int id, int se
 	return -(ret <= 0);
 }
 
-static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd)
+static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
+	struct icmp_packet *request, struct icmp_packet *response)
 {
 	static uint8_t				control[1024];
 	static struct sockaddr_in	src_addr;
-	static icmp_packet			packet;
 	static struct iovec			frames[] =
 	{
-		{&packet.ip_header, sizeof(packet.ip_header)},
-		{&packet.icmp_message, sizeof(packet.icmp_message)}
+		{NULL, sizeof(request->ip_header)},
+		{NULL, sizeof(request->icmp_header)},
+		{NULL, sizeof(request->payload)},
 	};
-	static struct msghdr	response = {
+	static struct msghdr		message = {
 		.msg_name = &src_addr,
 		.msg_namelen = sizeof(src_addr),
 		.msg_iov = frames,
@@ -67,27 +67,50 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd)
 	ssize_t					ret;
 	int						err;
 
-	ret = recvmsg(sd, &response, 0);
+	frames[0].iov_base = &request->ip_header;
+	frames[1].iov_base = &request->icmp_header;
+	frames[2].iov_base = &request->payload;
 
-	err = -(ret <= 0 || packet.ip_header.saddr != addr->sin_addr.s_addr);
+	ret = recvmsg(sd, &message, 0);
+
+	err = -(ret != sizeof(*request)
+		|| request->icmp_header.type != ICMP_ECHO);
+
+	if (!err)
+	{
+		frames[0].iov_base = &response->ip_header;
+		frames[1].iov_base = &response->icmp_header;
+		frames[2].iov_base = &response->payload;
+
+		ret = recvmsg(sd, &message, 0);
+
+		err = -(ret != sizeof(*response)
+			|| response->icmp_header.type != ICMP_ECHOREPLY
+			|| response->ip_header.saddr != addr->sin_addr.s_addr);
+	}
 
 	return err;
 }
 
-static int	icmp_echo(const struct sockaddr_in *addr, int sd, int id, int sequence)
+static int	icmp_echo(const struct sockaddr_in *addr, int sd,
+	uint16_t id, uint16_t sequence)
 {
-	int err;
+	static icmp_packet	request;
+	static icmp_packet	response;
+	int					err;
 
 	err = icmp_echo_send(addr, sd, id, sequence);
 	if (!err)
 	{
-		fprintf(stderr, "Sent icmp echo request to %s\n", inet_ntoa(addr->sin_addr));
+		fprintf(stderr, "Sent icmp echo request to %s: icmp_seq=%hu\n",
+			inet_ntoa(addr->sin_addr), sequence);
 		++stats.transmitted;
 
-		err = icmp_echo_recv(addr, sd);
+		err = icmp_echo_recv(addr, sd, &request, &response);
 		if (!err)
 		{
-			fprintf(stderr, "Received icmp echo response from %s\n", inet_ntoa(addr->sin_addr));
+			fprintf(stderr, "Received icmp echo response from %s: icmp_seq=%hu\n",
+				inet_ntoa(addr->sin_addr), ntohs(response.icmp_header.un.echo.sequence));
 			++stats.received;
 		}
 		else if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -101,15 +124,19 @@ static int	icmp_echo(const struct sockaddr_in *addr, int sd, int id, int sequenc
 	return err;
 }
 
-int	ping(const struct sockaddr_in *addr, int sd, int id, unsigned count)
+int	ping(const struct sockaddr_in *addr, int sd, uint16_t id, uint64_t count)
 {
 	int				err;
-	unsigned		i;
+	uint64_t		sequence_i;
 
-	i = 0;
-	for (; count == 0 || i != count; i++)
+	fprintf(stdout, "PING %s (%s) %zu(%zu) bytes of data.\n",
+		stats.host_name, stats.host_presentation,
+		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
+
+	sequence_i = 0;
+	for (; count == 0 || sequence_i != count; ++sequence_i)
 	{
-		err = icmp_echo(addr, sd, id, i);
+		err = icmp_echo(addr, sd, id, (uint16_t)sequence_i);
 		usleep(1000 * 1000);
 	}
 	return err;
@@ -122,28 +149,32 @@ int	main(int ac, char **av)
 	struct addrinfo			*address;
 	//struct timeval timeout = {.tv_sec = 2, .tv_usec = 0};
 	int						ret;
+	int						err;
 
 	if (ac < 2)
 		return invalid_arguments(av[0]);
 
-	address = host_address(av[1], NULL);
-	if (address != NULL)
+	ret = host_address(&address, av[1], NULL);
+	err = ret != 0;
+	if (!err)
 	{
 		sd = socket_raw();
 
 		//setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-		ret = -(sd == -1);
-		if (ret == 0)
+		stats.host_name = av[1];
+		stats.host_presentation = inet_ntoa(((struct sockaddr_in*)address->ai_addr)->sin_addr);
+
+		err = -(sd == -1);
+		if (!err)
 		{
 			// TODO: Register SIGINT signal() to print stats
 			ping((struct sockaddr_in*)address->ai_addr, sd, id, 0);
-			ret += close(sd);
+			err += close(sd);
 		}
 		freeaddrinfo(address);
 	}
 	else
-		ret = -1;
-
-	return (ret);
+		fprintf(stderr, "%s: %s: %s\n", av[0], av[1], gai_strerror(ret));
+	return (err);
 }

@@ -23,7 +23,7 @@ int16_t			ip_checksum(const void *data, size_t size)
 	return (int16_t)~sum;
 }
 
-struct addrinfo	*host_address(const char *node, const char *service)
+int	host_address(struct addrinfo **address, const char *node, const char *service)
 {
 	static const struct addrinfo	hints = {
 		.ai_family = AF_INET,
@@ -31,12 +31,5 @@ struct addrinfo	*host_address(const char *node, const char *service)
 		.ai_socktype = SOCK_RAW
 	};
 
-	struct addrinfo	*address;
-
-	address = NULL;
-
-	if (getaddrinfo(node, service, &hints, &address))
-		perror("getaddrinfo");
-
-	return address;
+	return getaddrinfo(node, service, &hints, address);
 }
