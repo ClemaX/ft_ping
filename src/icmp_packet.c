@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <string.h>
 
 #include <netinet/in.h>
@@ -27,6 +28,8 @@ icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr,
 		},
 		.payload = ICMP_ECHO_PAYLOAD,
 	};
+
+	packet.ip_header.frag_off = htons(0 | IP_DF);
 
 	packet.ip_header.daddr = addr->sin_addr.s_addr;
 
