@@ -12,6 +12,8 @@
 #include <socket_utils.h>
 #include <icmp_echo.h>
 
+#include <ping.h>
+
 icmp_echo_stats	stats;
 
 static int	invalid_arguments(const char *name)
@@ -29,8 +31,8 @@ int	ping(const struct sockaddr_in *addr, int sd, uint16_t id, uint64_t count)
 		stats.host_name, stats.host_presentation,
 		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
 
-	sequence_i = 0;
-	for (; count == 0 || sequence_i != count; ++sequence_i)
+	sequence_i = PING_SEQ_START;
+	for (; count == 0 || sequence_i != count - PING_SEQ_START; ++sequence_i)
 	{
 		err = icmp_echo(&stats, addr, sd, id, (uint16_t)sequence_i);
 		usleep(1000 * 1000);
