@@ -23,6 +23,7 @@ LIBARS = $(notdir $(LIBS))
 # Sources
 INCS = $(LIBINCS) $(INCDIR)
 SRCS = $(addprefix $(SRCDIR)/,\
+	icmp_echo.c\
 	icmp_packet.c\
 	ip_utils.c\
 	main.c\
