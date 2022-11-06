@@ -35,14 +35,14 @@ OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 DEPS = $(OBJS:.o=.d)
 
 # Flags
-CFLAGS = -Wall -Wextra -Werror $(INCS:%=-I%)
+CFLAGS = -Wall -Wextra -Werror
 DFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
 LDFLAGS = $(LIBDIRS:%=-L%)
 LDLIBS = $(LIBARS:lib%.a=-l%)
 ARFLAGS = -rcus
 
 # Compiling commands
-COMPILE.c = $(CC) $(DFLAGS) $(CFLAGS) -c
+COMPILE.c = $(CC) $(DFLAGS) $(CFLAGS) $(INCS:%=-I%) -c
 COMPILE.o = $(LD) $(LDFLAGS)
 ARCHIVE.o = $(AR) $(ARFLAGS)
 
