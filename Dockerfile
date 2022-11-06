@@ -12,4 +12,8 @@ FROM alpine as runner
 COPY --from=builder /build/ft_ping /app/ft_ping
 WORKDIR /app
 
+RUN adduser -D runner
+
+USER runner
+
 CMD  ./ft_ping localhost
