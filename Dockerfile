@@ -12,4 +12,4 @@ FROM alpine as runner
 COPY --from=builder /build/ft_ping /app/ft_ping
 WORKDIR /app
 
-CMD  ./ft_ping
+CMD  ./ft_ping localhost
