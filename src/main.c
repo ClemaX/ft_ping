@@ -22,10 +22,23 @@ static int	invalid_arguments(const char *name)
 	return 1;
 }
 
-int	ping(const struct sockaddr_in *addr, int sd, uint16_t id, uint64_t count)
+static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
+	uint16_t id, uint64_t count)
 {
 	int				err;
 	uint64_t		sequence_i;
+	icmp_echo_fun	*echo_fun;
+
+#if SOCKET_ICMP_USE_DGRAM
+	if (socket_type == SOCK_RAW)
+		echo_fun = icmp_echo;
+	else
+		echo_fun = icmp_echo_dgram;
+
+#else
+	(void)socket_type;
+	echo_fun = icmp_echo;
+#endif
 
 	fprintf(stdout, "PING %s (%s) %zu(%zu) bytes of data.\n",
 		stats.host_name, stats.host_presentation,
@@ -34,16 +47,17 @@ int	ping(const struct sockaddr_in *addr, int sd, uint16_t id, uint64_t count)
 	sequence_i = PING_SEQ_START;
 	for (; count == 0 || sequence_i != count - PING_SEQ_START; ++sequence_i)
 	{
-		err = icmp_echo(&stats, addr, sd, id, (uint16_t)sequence_i);
+		err = echo_fun(&stats, addr, sd, id, (uint16_t)sequence_i);
 		usleep(1000 * 1000);
 	}
 	return err;
 }
 
-int	main(int ac, char **av)
+int			main(int ac, char **av)
 {
 	const int				id = getpid();
 	int						sd;
+	int						socket_type;
 	struct addrinfo			*address;
 	//struct timeval timeout = {.tv_sec = 2, .tv_usec = 0};
 	int						ret;
@@ -57,8 +71,9 @@ int	main(int ac, char **av)
 	err = ret != 0;
 	if (!err)
 	{
-		sd = socket_raw();
+		sd = socket_icmp(&socket_type);
 
+		// TODO: Set and handle send and receive timeouts
 		//setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
 		stats.host_name = av[1];
@@ -68,7 +83,7 @@ int	main(int ac, char **av)
 		if (!err)
 		{
 			// TODO: Register SIGINT signal() to print stats
-			ping((struct sockaddr_in*)address->ai_addr, sd, id, 0);
+			ping((struct sockaddr_in*)address->ai_addr, sd, socket_type, id, 0);
 			err += close(sd);
 		}
 		freeaddrinfo(address);
