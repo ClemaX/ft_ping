@@ -106,7 +106,17 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
 				response.ip_header.ttl,
-				time);
+				time
+			);
+
+			stats->time_sum_ms += time;
+			stats->time_sum_ms_sq += time * time;
+
+			if (time < stats->min_time_ms)
+				stats->min_time_ms = time;
+
+			if (time > stats->max_time_ms)
+				stats->max_time_ms = time;
 
 			++(stats->received);
 		}

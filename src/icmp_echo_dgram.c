@@ -63,7 +63,7 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 	static icmp_packet		request;
 	static icmp_packet		response;
 	static struct timeval	receive_time;
-	float					time;
+	float					time_ms;
 	int						err;
 
 	err = icmp_echo_send(addr, sd, id, sequence, &stats->last_send_time);
@@ -82,7 +82,7 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 			fprintf(stderr, "Received icmp echo response from %s: icmp_seq=%hu\n",
 				inet_ntoa(addr->sin_addr), ntohs(response.icmp_header.un.echo.sequence));
 			*/
-			time = TV_DIFF_MS(stats->last_send_time, receive_time);
+			time_ms = TV_DIFF_MS(stats->last_send_time, receive_time);
 
 			fprintf(stdout,
 				"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
@@ -90,10 +90,17 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
 				response.ip_header.ttl,
-				time
+				time_ms
 			);
 
-			stats->average_time += time;
+			stats->time_sum_ms += time_ms;
+			stats->time_sum_ms_sq += time_ms * time_ms;
+
+			if (time_ms < stats->min_time_ms)
+				stats->min_time_ms = time_ms;
+
+			if (time_ms > stats->max_time_ms)
+				stats->max_time_ms = time_ms;
 
 			++(stats->received);
 		}

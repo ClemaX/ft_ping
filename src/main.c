@@ -1,4 +1,3 @@
-#include "time_utils.h"
 #include <netdb.h>
 #include <sys/time.h>
 #define _GNU_SOURCE
@@ -8,6 +7,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <math.h>
 
 #include <signal.h>
 #include <unistd.h>
@@ -16,6 +16,7 @@
 
 #include <socket_utils.h>
 #include <icmp_echo.h>
+#include <time_utils.h>
 
 #include <ping.h>
 
@@ -42,6 +43,8 @@ static void handle_interrupt(int signal)
 static void	handle_exit()
 {
 	float	elapsed_ms;
+	float	average;
+	float	mean_deviation;
 
 	if (sd != -1)
 		close(sd);
@@ -49,6 +52,9 @@ static void	handle_exit()
 	if (stats.transmitted != 0)
 	{
 		elapsed_ms = TV_DIFF_MS(stats.start_time, stats.last_send_time);
+		average = stats.time_sum_ms / stats.received;
+		mean_deviation = sqrtf(stats.time_sum_ms_sq / stats.received
+			- average * average);
 
 		fprintf(stdout,
 			"--- %s ping statistics ---\n"
@@ -58,6 +64,13 @@ static void	handle_exit()
 			(stats.transmitted - stats.received) * 100.0 / stats.transmitted,
 			elapsed_ms
 		);
+
+		fprintf(stdout,
+			"rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
+			stats.min_time_ms,
+			average,
+			stats.max_time_ms,
+			mean_deviation);
 	}
 
 	if (address != NULL)
@@ -81,6 +94,12 @@ static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
 	(void)socket_type;
 	echo_fun = icmp_echo;
 #endif
+
+	stats.min_time_ms = INFINITY;
+	stats.max_time_ms = 0;
+
+	stats.time_sum_ms = 0;
+	stats.time_sum_ms_sq = 0;
 
 	fprintf(stdout, "PING %s (%s) %zu(%zu) bytes of data.\n",
 		stats.host_name, stats.host_presentation,

@@ -7,10 +7,10 @@ typedef struct	icmp_echo_stats
 {
 	struct timeval	start_time;
 	struct timeval	last_send_time;
-	float			average_time;
-	float			min_time;
-	float			max_time;
-	float			median_deviation;
+	float			time_sum_ms;
+	float			time_sum_ms_sq;
+	float			min_time_ms;
+	float			max_time_ms;
 	unsigned		transmitted;
 	unsigned		received;
 	char			*host_name;
