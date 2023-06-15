@@ -85,7 +85,7 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 			*/
 			time_ms = TV_DIFF_MS(stats->last_send_time, receive_time);
 
-			fprintf(stdout,
+			printf(
 				"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
 				sizeof(response.icmp_header) + sizeof(response.payload),
 				stats->host_name, stats->host_presentation,

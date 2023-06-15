@@ -56,7 +56,7 @@ static void	handle_exit()
 		mean_deviation = sqrtf(stats.time_sum_ms_sq / stats.received
 			- average * average);
 
-		fprintf(stdout,
+		printf(
 			"--- %s ping statistics ---\n"
 			"%u packets transmitted, %u packets received"
 			", %.0f%% packet loss, time %.0lfms\n",
@@ -68,7 +68,7 @@ static void	handle_exit()
 
 		if (stats.received != 0)
 		{
-			fprintf(stdout,
+			printf(
 				"rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
 				stats.min_time_ms,
 				average,
@@ -106,7 +106,7 @@ static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
 	stats.time_sum_ms = 0;
 	stats.time_sum_ms_sq = 0;
 
-	fprintf(stdout, "PING %s (%s) %zu(%zu) bytes of data.\n",
+	printf("PING %s (%s) %zu(%zu) bytes of data.\n",
 		stats.host_name, stats.host_presentation,
 		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
 

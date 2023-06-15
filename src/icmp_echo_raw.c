@@ -86,7 +86,7 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 			*/
 			time = TV_DIFF_MS(stats->last_send_time, receive_time);
 
-			fprintf(stdout, "%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
+			printf("%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
 				sizeof(response.icmp_header) + sizeof(response.payload),
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
