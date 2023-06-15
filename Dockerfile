@@ -5,7 +5,7 @@ RUN apk add --no-cache bash clang make libc-dev binutils build-base
 COPY . /build
 WORKDIR /build
 
-RUN make -C /build NAME=ft_ping CFLAGS="-Wall -Wextra" && make clean
+RUN make -C /build CC=gcc NAME=ft_ping CFLAGS="-Wall -Wextra" && make clean
 
 FROM alpine as runner
 

@@ -141,8 +141,8 @@ int			main(int ac, char **av)
 	{
 		sd = socket_icmp(&socket_type);
 
-		setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO_OLD, &timeout, sizeof(timeout));
-		setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO_OLD, &timeout, sizeof(timeout));
+		setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+		setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
 		err = -(sd == -1);
 		if (!err)

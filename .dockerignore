@@ -1,7 +1,13 @@
+.git/
+.cache/
 .vscode
-obj/
 .dockerignore
 .editorconfig
 .gitignore
+
 Dockerfile
+lib/*/*.a
+lib/*/**/*.o
+lib/*/**/*.d
+obj/
 ft_ping

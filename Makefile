@@ -2,7 +2,7 @@ NAME := ft_ping
 
 # Compiler and linker
 CC := clang
-LD := clang
+LD := $(CC)
 AR := ar
 
 # Paths
@@ -50,7 +50,7 @@ $(OBJDIR) $(BINDIR):
 
 # Libraries
 $(LIBS): %.a: FORCE
-	make -C $(dir $@) NAME=$(@F)
+	$(MAKE) -C $(dir $@) NAME=$(@F)
 
 # Objects
 $(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d | $(OBJDIR)
@@ -71,13 +71,13 @@ $(BINDIR)/$(NAME): $(OBJS) $(LIBS) | $(BINDIR)
 # instead when building a static library
 clean:
 	$(foreach dir, $(LIBDIRS),\
-		echo "MK $(addprefix -C , $(dir)) $@" && make -C $(dir) $@ ; ):
+		echo "MK $(addprefix -C , $(dir)) $@" && $(MAKE) -C $(dir) $@ ; ):
 
 	@rm -r "$(OBJDIR)" 2>/dev/null && echo "RM $(OBJDIR)" || :
 
 fclean: clean
 	$(foreach dir, $(LIBDIRS),\
-		echo "MK $(addprefix -C, $(dir)) $@" && make -C $(dir) $@ ; ):
+		echo "MK $(addprefix -C, $(dir)) $@" && $(MAKE) -C $(dir) $@ ; ):
 
 	@rm "$(BINDIR)/$(NAME)" 2>/dev/null && echo "RM $(BINDIR)/$(NAME)" || :
 	@rmdir "$(BINDIR)" 2>/dev/null && echo "RM $(BINDIR)" || :
