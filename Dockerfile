@@ -1,6 +1,6 @@
 FROM alpine as builder
 
-RUN apk add --no-cache bash clang make libc-dev binutils build-base
+RUN apk add --no-cache bash gcc make libc-dev binutils build-base
 
 COPY . /build
 WORKDIR /build
