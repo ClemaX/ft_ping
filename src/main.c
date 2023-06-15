@@ -1,10 +1,13 @@
+#include <sys/time.h>
 #define _GNU_SOURCE
 
 #include <sys/socket.h>
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 
+#include <signal.h>
 #include <unistd.h>
 
 #include <arpa/inet.h>
@@ -20,6 +23,37 @@ static int	invalid_arguments(const char *name)
 {
 	fprintf(stderr, "Usage: %s hostname\n", name);
 	return 1;
+}
+
+static void on_interrupt(int signal)
+{
+	const int	err = signal != SIGINT;
+
+	if (!err)
+		printf("\n");
+
+	exit(err);
+}
+
+static void	print_stats()
+{
+	float	elapsed;
+
+	if (stats.transmitted != 0)
+	{
+		elapsed =
+			+ (stats.last_send_time.tv_sec - stats.start_time.tv_sec) * 1000
+			+ (stats.last_send_time.tv_usec - stats.start_time.tv_usec) / 1000.0;
+
+		fprintf(stdout,
+			"--- %s ping statistics ---\n"
+			"%u packets transmitted, %u packets received, %.0f%% packet loss, time %.0lfms\n",
+			stats.host_name,
+			stats.transmitted, stats.received,
+			(stats.transmitted - stats.received) * 100.0 / stats.transmitted,
+			elapsed
+		);
+	}
 }
 
 static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
@@ -44,10 +78,13 @@ static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
 		stats.host_name, stats.host_presentation,
 		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
 
-	sequence_i = PING_SEQ_START;
-	for (; count == 0 || sequence_i != count - PING_SEQ_START; ++sequence_i)
+	gettimeofday(&stats.start_time, NULL);
+
+	for (sequence_i = PING_SEQ_START;
+		count == 0 || sequence_i != count - PING_SEQ_START; ++sequence_i)
 	{
 		err = echo_fun(&stats, addr, sd, id, (uint16_t)sequence_i);
+
 		usleep(1000 * 1000);
 	}
 	return err;
@@ -76,12 +113,15 @@ int			main(int ac, char **av)
 		// TODO: Set and handle send and receive timeouts
 		//setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-		stats.host_name = av[1];
-		stats.host_presentation = inet_ntoa(((struct sockaddr_in*)address->ai_addr)->sin_addr);
-
 		err = -(sd == -1);
 		if (!err)
 		{
+			atexit(print_stats);
+			signal(SIGINT, on_interrupt);
+
+			stats.host_name = av[1];
+			stats.host_presentation = inet_ntoa(((struct sockaddr_in*)address->ai_addr)->sin_addr);
+
 			// TODO: Register SIGINT signal() to print stats
 			ping((struct sockaddr_in*)address->ai_addr, sd, socket_type, id, 0);
 			err += close(sd);
@@ -90,5 +130,6 @@ int			main(int ac, char **av)
 	}
 	else
 		fprintf(stderr, "%s: %s: %s\n", av[0], av[1], gai_strerror(ret));
+
 	return (err);
 }

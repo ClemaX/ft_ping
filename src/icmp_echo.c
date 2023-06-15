@@ -1,18 +1,25 @@
+#include <sys/socket.h>
+#include <sys/time.h>
+
 #include <stdio.h>
 #include <errno.h>
 
 #include <arpa/inet.h>
 
+#include <socket_utils.h>
 #include <icmp_echo.h>
 
 
 static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
-	uint16_t id, uint16_t sequence)
+	uint16_t id, uint16_t sequence, struct timeval *timestamp)
 {
-	icmp_packet		*request;
-	ssize_t			ret;
+	icmp_packet	*request;
+	ssize_t		ret;
 
 	request = icmp_echo_request(addr, id, sequence);
+
+	gettimeofday(timestamp, NULL);
+	fprintf(stderr, "Got t1!\n");
 
 	ret = sendto(sd, request, sizeof(*request), 0,
 		(const struct sockaddr*)addr, sizeof(*addr));
@@ -21,9 +28,9 @@ static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
 }
 
 static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
-	struct icmp_packet *request, struct icmp_packet *response)
+	struct icmp_packet *request, struct icmp_packet *response,
+	struct timeval *timestamp)
 {
-	static uint8_t				control[1024];
 	static struct sockaddr_in	src_addr;
 	static struct iovec			frames[] =
 	{
@@ -31,15 +38,8 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 		{NULL, sizeof(request->icmp_header)},
 		{NULL, sizeof(request->payload)},
 	};
-	static struct msghdr		message = {
-		.msg_name = &src_addr,
-		.msg_namelen = sizeof(src_addr),
-		.msg_iov = frames,
-		.msg_iovlen = sizeof(frames) / sizeof(*frames),
-		.msg_control = control,
-		.msg_controllen = sizeof(control),
-		.msg_flags = 0,
-	};
+	struct msghdr *const		message = socket_msghdr(&src_addr, frames,
+		sizeof(frames) / sizeof(*frames));
 	ssize_t					ret;
 	int						err;
 
@@ -47,7 +47,7 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 	frames[1].iov_base = &request->icmp_header;
 	frames[2].iov_base = &request->payload;
 
-	ret = recvmsg(sd, &message, 0);
+	ret = recvmsg(sd, message, 0);
 
 	err = -(ret != sizeof(*request)
 		|| request->icmp_header.type != ICMP_ECHO);
@@ -58,11 +58,14 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 		frames[1].iov_base = &response->icmp_header;
 		frames[2].iov_base = &response->payload;
 
-		ret = recvmsg(sd, &message, 0);
+		ret = recvmsg(sd, message, 0);
 
 		err = -(ret != sizeof(*response)
 			|| response->icmp_header.type != ICMP_ECHOREPLY
 			|| response->ip_header.saddr != addr->sin_addr.s_addr);
+
+		if (!err)
+			icmp_packet_stat(message, timestamp, &response->ip_header.ttl);
 	}
 
 	// TODO: Use ctrlmsg to retrieve timestamps from SO
@@ -73,11 +76,12 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 	int sd, uint16_t id, uint16_t sequence)
 {
-	static icmp_packet	request;
-	static icmp_packet	response;
-	int					err;
+	static icmp_packet		request;
+	static icmp_packet		response;
+	static struct timeval	receive_time;
+	int						err;
 
-	err = icmp_echo_send(addr, sd, id, sequence);
+	err = icmp_echo_send(addr, sd, id, sequence, &stats->last_send_time);
 	if (!err)
 	{
 		/*
@@ -86,7 +90,7 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 		*/
 		++(stats->transmitted);
 
-		err = icmp_echo_recv(addr, sd, &request, &response);
+		err = icmp_echo_recv(addr, sd, &request, &response, &receive_time);
 		if (!err)
 		{
 			/*
@@ -98,6 +102,10 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
 				response.ip_header.ttl);
+
+			fprintf(stderr, "t0: %zu, t1: %zu\n",
+				stats->last_send_time.tv_sec * 1000 + stats->last_send_time.tv_usec / 1000,
+				receive_time.tv_sec * 1000 + receive_time.tv_usec / 1000);
 
 			++(stats->received);
 		}

@@ -5,10 +5,16 @@
 
 typedef struct	icmp_echo_stats
 {
-	unsigned	transmitted;
-	unsigned	received;
-	char		*host_name;
-	char		*host_presentation;
+	struct timeval	start_time;
+	struct timeval	last_send_time;
+	float			average_time;
+	float			min_time;
+	float			max_time;
+	float			median_deviation;
+	unsigned		transmitted;
+	unsigned		received;
+	char			*host_name;
+	char			*host_presentation;
 }				icmp_echo_stats;
 
 typedef int (icmp_echo_fun(icmp_echo_stats *stats,

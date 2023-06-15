@@ -16,4 +16,4 @@ RUN adduser -D runner
 
 USER runner
 
-CMD  ./ft_ping localhost
+CMD ./ft_ping localhost

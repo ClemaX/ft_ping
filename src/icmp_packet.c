@@ -1,4 +1,6 @@
 #include <endian.h>
+#include <netinet/ip.h>
+#include <stdint.h>
 #include <string.h>
 
 #include <netinet/in.h>
@@ -41,4 +43,30 @@ icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr,
 		sizeof(packet.icmp_header) + sizeof(packet.payload));
 
 	return &packet;
+}
+
+void	icmp_packet_stat(struct msghdr *message,
+	struct timeval *timestamp, uint8_t *ttl)
+{
+	*timestamp = (struct timeval){0, 0};
+	*ttl = 0;
+
+	for (struct cmsghdr *cframe = CMSG_FIRSTHDR(message); cframe != NULL;
+		cframe = CMSG_NXTHDR(message, cframe))
+	{
+		switch (cframe->cmsg_level)
+		{
+			case SOL_SOCKET:
+				if (cframe->cmsg_type == SO_TIMESTAMP_OLD)
+					*timestamp = *(struct timeval *)CMSG_DATA(cframe);
+
+				break;
+
+			case SOL_IP:
+				if (cframe->cmsg_type == IP_TTL)
+					*ttl = *(uint8_t*)CMSG_DATA(cframe);
+
+				break;
+		}
+	}
 }

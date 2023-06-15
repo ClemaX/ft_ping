@@ -20,6 +20,10 @@ typedef struct					icmp_packet
 	uint8_t		payload[56];
 }	__attribute__((__packed__))	icmp_packet;
 
-icmp_packet	*icmp_echo_request(const struct sockaddr_in *addr, uint16_t id, uint16_t sequence);
+icmp_packet		*icmp_echo_request(const struct sockaddr_in *addr,
+	uint16_t id, uint16_t sequence);
+
+void			icmp_packet_stat(struct msghdr *message,
+	struct timeval *timestamp, uint8_t *ttl);
 
 #endif
