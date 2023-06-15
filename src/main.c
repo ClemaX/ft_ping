@@ -125,9 +125,9 @@ static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
 int			main(int ac, char **av)
 {
 	const int				id = getpid();
+	struct timeval			timeout = TV_FROM_MS(PING_TIMEOUT_MS);
 	int						sd;
 	int						socket_type;
-	//struct timeval timeout = {.tv_sec = 2, .tv_usec = 0};
 	int						ret;
 	int						err;
 
@@ -141,8 +141,8 @@ int			main(int ac, char **av)
 	{
 		sd = socket_icmp(&socket_type);
 
-		// TODO: Set and handle send and receive timeouts
-		//setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+		setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO_OLD, &timeout, sizeof(timeout));
+		setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO_OLD, &timeout, sizeof(timeout));
 
 		err = -(sd == -1);
 		if (!err)

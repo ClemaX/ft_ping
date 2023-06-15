@@ -105,7 +105,9 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 			++(stats->received);
 		}
 		else if (errno == EAGAIN || errno == EWOULDBLOCK)
-			fprintf(stderr, "Timed out while waiting for response\n");
+		{
+			//fprintf(stderr, "Timed out while waiting for response\n");
+		}
 		else
 			perror("recvmsg");
 	}

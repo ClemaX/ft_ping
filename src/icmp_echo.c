@@ -121,7 +121,9 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 			++(stats->received);
 		}
 		else if (errno == EAGAIN || errno == EWOULDBLOCK)
-			fprintf(stderr, "Timed out while waiting for response\n");
+		{
+			//fprintf(stderr, "Timed out while waiting for response\n");
+		}
 		else
 			perror("recvmsg");
 	}
