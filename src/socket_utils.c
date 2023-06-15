@@ -66,7 +66,6 @@ int	socket_icmp(int *socket_type)
 	return sd;
 }
 
-
 struct msghdr *socket_msghdr(struct sockaddr_in *src_addr,
 	struct iovec *frames, size_t frame_count)
 {
@@ -85,3 +84,28 @@ struct msghdr *socket_msghdr(struct sockaddr_in *src_addr,
 	return &message;
 }
 
+void	socket_packet_stat(struct msghdr *message,
+	struct timeval *timestamp, uint8_t *ttl)
+{
+	*timestamp = (struct timeval){0, 0};
+	*ttl = 0;
+
+	for (struct cmsghdr *cframe = CMSG_FIRSTHDR(message); cframe != NULL;
+		cframe = CMSG_NXTHDR(message, cframe))
+	{
+		switch (cframe->cmsg_level)
+		{
+			case SOL_SOCKET:
+				if (cframe->cmsg_type == SO_TIMESTAMP_OLD)
+					*timestamp = *(struct timeval *)CMSG_DATA(cframe);
+
+				break;
+
+			case SOL_IP:
+				if (cframe->cmsg_type == IP_TTL)
+					*ttl = *(uint8_t*)CMSG_DATA(cframe);
+
+				break;
+		}
+	}
+}

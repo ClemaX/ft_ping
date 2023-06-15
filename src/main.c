@@ -134,7 +134,7 @@ int			main(int ac, char **av)
 	if (ac < 2)
 		return invalid_arguments(av[0]);
 
-	ret = host_address(&address, av[1], NULL);
+	ret = ip_host_address(&address, av[1], NULL);
 
 	err = ret != 0;
 	if (!err)

@@ -23,7 +23,8 @@ int16_t			ip_checksum(const void *data, size_t size)
 	return (int16_t)~sum;
 }
 
-int	host_address(struct addrinfo **address, const char *node, const char *service)
+int				ip_host_address(struct addrinfo **address,
+	const char *node, const char *service)
 {
 	static const struct addrinfo	hints = {
 		.ai_family = AF_INET,

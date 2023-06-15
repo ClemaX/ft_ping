@@ -20,7 +20,6 @@ static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
 	request = icmp_echo_request(addr, id, sequence);
 
 	gettimeofday(timestamp, NULL);
-	fprintf(stderr, "Got t1!\n");
 
 	ret = sendto(sd, request, sizeof(*request), 0,
 		(const struct sockaddr*)addr, sizeof(*addr));
@@ -44,32 +43,18 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 	ssize_t					ret;
 	int						err;
 
-	frames[0].iov_base = &request->ip_header;
-	frames[1].iov_base = &request->icmp_header;
-	frames[2].iov_base = &request->payload;
+	frames[0].iov_base = &response->ip_header;
+	frames[1].iov_base = &response->icmp_header;
+	frames[2].iov_base = &response->payload;
 
 	ret = recvmsg(sd, message, 0);
 
-	err = -(ret != sizeof(*request)
-		|| request->icmp_header.type != ICMP_ECHO);
+	err = -(ret != sizeof(*response)
+		|| response->icmp_header.type != ICMP_ECHOREPLY
+		|| response->ip_header.saddr != addr->sin_addr.s_addr);
 
 	if (!err)
-	{
-		frames[0].iov_base = &response->ip_header;
-		frames[1].iov_base = &response->icmp_header;
-		frames[2].iov_base = &response->payload;
-
-		ret = recvmsg(sd, message, 0);
-
-		err = -(ret != sizeof(*response)
-			|| response->icmp_header.type != ICMP_ECHOREPLY
-			|| response->ip_header.saddr != addr->sin_addr.s_addr);
-
-		if (!err)
-			icmp_packet_stat(message, timestamp, &response->ip_header.ttl);
-	}
-
-	// TODO: Use ctrlmsg to retrieve timestamps from SO
+		socket_packet_stat(message, timestamp, &response->ip_header.ttl);
 
 	return err;
 }

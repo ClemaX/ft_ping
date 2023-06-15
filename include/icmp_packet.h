@@ -8,7 +8,8 @@
 
 # include <ip_utils.h>
 
-# define ICMP_ECHO_PAYLOAD "********************************************************"
+# define ICMP_ECHO_PAYLOAD \
+	"********************************************************"
 
 typedef struct iphdr	ip_header;
 typedef struct icmphdr	icmp_header;
@@ -22,8 +23,5 @@ typedef struct					icmp_packet
 
 icmp_packet		*icmp_echo_request(const struct sockaddr_in *addr,
 	uint16_t id, uint16_t sequence);
-
-void			icmp_packet_stat(struct msghdr *message,
-	struct timeval *timestamp, uint8_t *ttl);
 
 #endif

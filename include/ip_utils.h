@@ -9,7 +9,7 @@ int16_t	ip_checksum(const void *data, size_t size);
 
 int		ip_packet();
 
-int		host_address(struct addrinfo **address, const char *node, const char *service);
-
+int		ip_host_address(struct addrinfo **address,
+	const char *node, const char *service);
 
 #endif

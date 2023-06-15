@@ -10,4 +10,7 @@ int				socket_icmp(int *socket_type);
 struct msghdr	*socket_msghdr(struct sockaddr_in *src_addr,
 	struct iovec *frames, size_t frame_count);
 
+void			socket_packet_stat(struct msghdr *message,
+	struct timeval *timestamp, uint8_t *ttl);
+
 #endif

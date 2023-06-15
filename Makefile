@@ -24,7 +24,7 @@ LIBARS = $(notdir $(LIBS))
 INCS = $(LIBINCS) $(INCDIR)
 SRCS = $(addprefix $(SRCDIR)/,\
 	icmp_echo_dgram.c\
-	icmp_echo.c\
+	icmp_echo_raw.c\
 	icmp_packet.c\
 	ip_utils.c\
 	main.c\

@@ -19,7 +19,8 @@ static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
 
 	gettimeofday(timestamp, NULL);
 
-	ret = sendto(sd, &request->icmp_header, sizeof(*request) - sizeof(request->ip_header), 0,
+	ret = sendto(sd, &request->icmp_header,
+		sizeof(*request) - sizeof(request->ip_header), 0,
 		(const struct sockaddr*)addr, sizeof(*addr));
 
 	return -(ret <= 0);
@@ -50,7 +51,7 @@ static int	icmp_echo_recv(const struct sockaddr_in *addr, int sd,
 		|| response->icmp_header.type != ICMP_ECHOREPLY);
 
 	if (!err)
-		icmp_packet_stat(message, timestamp, &response->ip_header.ttl);
+		socket_packet_stat(message, timestamp, &response->ip_header.ttl);
 
 	// TODO: Populate or remove request altogether
 
