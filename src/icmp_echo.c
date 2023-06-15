@@ -8,6 +8,7 @@
 
 #include <socket_utils.h>
 #include <icmp_echo.h>
+#include <time_utils.h>
 
 
 static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
@@ -79,6 +80,7 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 	static icmp_packet		request;
 	static icmp_packet		response;
 	static struct timeval	receive_time;
+	float					time;
 	int						err;
 
 	err = icmp_echo_send(addr, sd, id, sequence, &stats->last_send_time);
@@ -97,15 +99,14 @@ int			icmp_echo(icmp_echo_stats *stats, const struct sockaddr_in *addr,
 			fprintf(stderr, "Received icmp echo response from %s: icmp_seq=%hu\n",
 				inet_ntoa(addr->sin_addr), ntohs(response.icmp_header.un.echo.sequence));
 			*/
-			fprintf(stdout, "%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=TODO\n",
+			time = TV_DIFF_MS(stats->last_send_time, receive_time);
+
+			fprintf(stdout, "%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
 				sizeof(response.icmp_header) + sizeof(response.payload),
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
-				response.ip_header.ttl);
-
-			fprintf(stderr, "t0: %zu, t1: %zu\n",
-				stats->last_send_time.tv_sec * 1000 + stats->last_send_time.tv_usec / 1000,
-				receive_time.tv_sec * 1000 + receive_time.tv_usec / 1000);
+				response.ip_header.ttl,
+				time);
 
 			++(stats->received);
 		}

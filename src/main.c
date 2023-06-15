@@ -1,3 +1,5 @@
+#include "time_utils.h"
+#include <netdb.h>
 #include <sys/time.h>
 #define _GNU_SOURCE
 
@@ -18,6 +20,8 @@
 #include <ping.h>
 
 icmp_echo_stats	stats;
+struct addrinfo	*address;
+int				sd;
 
 static int	invalid_arguments(const char *name)
 {
@@ -25,7 +29,7 @@ static int	invalid_arguments(const char *name)
 	return 1;
 }
 
-static void on_interrupt(int signal)
+static void handle_interrupt(int signal)
 {
 	const int	err = signal != SIGINT;
 
@@ -35,15 +39,16 @@ static void on_interrupt(int signal)
 	exit(err);
 }
 
-static void	print_stats()
+static void	handle_exit()
 {
-	float	elapsed;
+	float	elapsed_ms;
+
+	if (sd != -1)
+		close(sd);
 
 	if (stats.transmitted != 0)
 	{
-		elapsed =
-			+ (stats.last_send_time.tv_sec - stats.start_time.tv_sec) * 1000
-			+ (stats.last_send_time.tv_usec - stats.start_time.tv_usec) / 1000.0;
+		elapsed_ms = TV_DIFF_MS(stats.start_time, stats.last_send_time);
 
 		fprintf(stdout,
 			"--- %s ping statistics ---\n"
@@ -51,9 +56,12 @@ static void	print_stats()
 			stats.host_name,
 			stats.transmitted, stats.received,
 			(stats.transmitted - stats.received) * 100.0 / stats.transmitted,
-			elapsed
+			elapsed_ms
 		);
 	}
+
+	if (address != NULL)
+		freeaddrinfo(address);
 }
 
 static int	ping(const struct sockaddr_in *addr, int sd, int socket_type,
@@ -95,7 +103,6 @@ int			main(int ac, char **av)
 	const int				id = getpid();
 	int						sd;
 	int						socket_type;
-	struct addrinfo			*address;
 	//struct timeval timeout = {.tv_sec = 2, .tv_usec = 0};
 	int						ret;
 	int						err;
@@ -116,17 +123,15 @@ int			main(int ac, char **av)
 		err = -(sd == -1);
 		if (!err)
 		{
-			atexit(print_stats);
-			signal(SIGINT, on_interrupt);
+			atexit(handle_exit);
+			signal(SIGINT, handle_interrupt);
 
 			stats.host_name = av[1];
-			stats.host_presentation = inet_ntoa(((struct sockaddr_in*)address->ai_addr)->sin_addr);
+			stats.host_presentation =
+				inet_ntoa(((struct sockaddr_in*)address->ai_addr)->sin_addr);
 
-			// TODO: Register SIGINT signal() to print stats
 			ping((struct sockaddr_in*)address->ai_addr, sd, socket_type, id, 0);
-			err += close(sd);
 		}
-		freeaddrinfo(address);
 	}
 	else
 		fprintf(stderr, "%s: %s: %s\n", av[0], av[1], gai_strerror(ret));

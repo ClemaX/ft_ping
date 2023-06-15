@@ -7,7 +7,7 @@
 
 #include <socket_utils.h>
 #include <icmp_echo.h>
-
+#include <time_utils.h>
 
 static int	icmp_echo_send(const struct sockaddr_in *addr, int sd,
 	uint16_t id, uint16_t sequence, struct timeval *timestamp)
@@ -82,11 +82,10 @@ int			icmp_echo_dgram(icmp_echo_stats *stats,
 			fprintf(stderr, "Received icmp echo response from %s: icmp_seq=%hu\n",
 				inet_ntoa(addr->sin_addr), ntohs(response.icmp_header.un.echo.sequence));
 			*/
-			time = (receive_time.tv_sec - stats->last_send_time.tv_sec) * 1000
-				+ (receive_time.tv_usec - stats->last_send_time.tv_usec) / 1000.0;
+			time = TV_DIFF_MS(stats->last_send_time, receive_time);
 
 			fprintf(stdout,
-				"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf\n",
+				"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
 				sizeof(response.icmp_header) + sizeof(response.payload),
 				stats->host_name, stats->host_presentation,
 				ntohs(response.icmp_header.un.echo.sequence),
