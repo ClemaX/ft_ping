@@ -58,19 +58,24 @@ static void	handle_exit()
 
 		fprintf(stdout,
 			"--- %s ping statistics ---\n"
-			"%u packets transmitted, %u packets received, %.0f%% packet loss, time %.0lfms\n",
+			"%u packets transmitted, %u packets received"
+			", %.0f%% packet loss, time %.0lfms\n",
 			stats.host_name,
 			stats.transmitted, stats.received,
 			(stats.transmitted - stats.received) * 100.0 / stats.transmitted,
 			elapsed_ms
 		);
 
-		fprintf(stdout,
-			"rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
-			stats.min_time_ms,
-			average,
-			stats.max_time_ms,
-			mean_deviation);
+		if (stats.received != 0)
+		{
+			fprintf(stdout,
+				"rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
+				stats.min_time_ms,
+				average,
+				stats.max_time_ms,
+				mean_deviation
+			);
+		}
 	}
 
 	if (address != NULL)
