@@ -14,7 +14,7 @@ OBJDIR := obj
 BINDIR := .
 
 # Library dependencies
-LIBS := $(addprefix $(LIBDIR)/, )
+LIBS := $(addprefix $(LIBDIR)/, libnet_utils/libnet_utils.a)
 
 LIBDIRS := $(dir $(LIBS))
 LIBINCS := $(addsuffix $(INCDIR), $(LIBDIRS))
@@ -23,12 +23,7 @@ LIBARS := $(notdir $(LIBS))
 # Sources
 INCS := $(LIBINCS) $(INCDIR)
 SRCS := $(addprefix $(SRCDIR)/,\
-	icmp_echo_dgram.c\
-	icmp_echo_raw.c\
-	icmp_packet.c\
-	ip_utils.c\
 	main.c\
-	socket_utils.c\
 )
 
 OBJS := $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
