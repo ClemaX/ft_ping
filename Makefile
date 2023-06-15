@@ -1,28 +1,28 @@
-NAME = ft_ping
+NAME := ft_ping
 
 # Compiler and linker
-CC = clang
-LD = clang
-AR = ar
+CC := clang
+LD := clang
+AR := ar
 
 # Paths
-SRCDIR = src
-INCDIR = include
-LIBDIR = lib
+SRCDIR := src
+INCDIR := include
+LIBDIR := lib
 
-OBJDIR = obj
-BINDIR = .
+OBJDIR := obj
+BINDIR := .
 
 # Library dependencies
-LIBS = $(addprefix $(LIBDIR)/, )
+LIBS := $(addprefix $(LIBDIR)/, )
 
-LIBDIRS = $(dir $(LIBS))
-LIBINCS = $(addsuffix $(INCDIR), $(LIBDIRS))
-LIBARS = $(notdir $(LIBS))
+LIBDIRS := $(dir $(LIBS))
+LIBINCS := $(addsuffix $(INCDIR), $(LIBDIRS))
+LIBARS := $(notdir $(LIBS))
 
 # Sources
-INCS = $(LIBINCS) $(INCDIR)
-SRCS = $(addprefix $(SRCDIR)/,\
+INCS := $(LIBINCS) $(INCDIR)
+SRCS := $(addprefix $(SRCDIR)/,\
 	icmp_echo_dgram.c\
 	icmp_echo_raw.c\
 	icmp_packet.c\
@@ -31,15 +31,15 @@ SRCS = $(addprefix $(SRCDIR)/,\
 	socket_utils.c\
 )
 
-OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-DEPS = $(OBJS:.o=.d)
+OBJS := $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+DEPS := $(OBJS:.o=.d)
 
 # Flags
-CFLAGS = -Wall -Wextra -Werror
+CFLAGS := -Wall -Wextra -Werror
 DFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
-LDFLAGS = $(LIBDIRS:%=-L%)
-LDLIBS = $(LIBARS:lib%.a=-l%) -lm
-ARFLAGS = -rcus
+LDFLAGS := $(LIBDIRS:%=-L%)
+LDLIBS := $(LIBARS:lib%.a=-l%) -lm
+ARFLAGS := -rcus
 
 # Compiling commands
 COMPILE.c = $(CC) $(DFLAGS) $(CFLAGS) $(INCS:%=-I%) -c
