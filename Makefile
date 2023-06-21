@@ -24,6 +24,7 @@ LIBARS := $(notdir $(LIBS))
 INCS := $(LIBINCS) $(INCDIR)
 SRCS := $(addprefix $(SRCDIR)/,\
 	main.c\
+	ping.c\
 )
 
 OBJS := $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
