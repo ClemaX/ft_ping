@@ -54,7 +54,7 @@ $(LIBS): %.a: FORCE
 	$(MAKE) -C $(dir $@) NAME=$(@F)
 
 # Objects
-$(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c $(OBJDIR)/%.d | $(OBJDIR)
+$(OBJS): $(OBJDIR)/%.o: $(SRCDIR)/%.c | $(OBJDIR)
 	@mkdir -p '$(@D)'
 	@echo "CC $<"
 	$(COMPILE.c) $< -o $@
