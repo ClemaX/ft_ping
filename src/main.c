@@ -10,16 +10,33 @@
 #include <icmp_echo.h>
 #include <time_utils.h>
 
+#include <libft/opts.h>
+
 #include <ping.h>
 
-volatile sig_atomic_t	interrupt = 0;
-
-static int	invalid_arguments(const char *name)
+enum option_t
 {
-	fprintf(stderr, "Usage: %s hostname\n", name);
+	OPT_NONE,
+	OPT_HELP,
+};
 
-	return 1;
-}
+static const t_opt_def	opts_def = {
+	.short_opts = (const char[]){
+		'h',
+		'\0',
+	},
+	.long_opts = (const char *[]) {
+		"help",
+		NULL,
+	},
+	.desc = (const char *[]){
+		"Display this information",
+		NULL,
+	},
+	.usage = "Usage: %s [options] hostname\n"
+};
+
+volatile sig_atomic_t	interrupt = 0;
 
 static void handle_interrupt(int signal)
 {
@@ -30,7 +47,7 @@ static void handle_interrupt(int signal)
 	printf("\n");
 }
 
-int			main(int ac, char **av)
+int			main(int ac, const char *const *av)
 {
 	ping_stats				stats;
 	const struct timeval	timeout = TV_FROM_MS(PING_TIMEOUT_MS);
@@ -39,9 +56,20 @@ int			main(int ac, char **av)
 	int						sd;
 	int						socket_type;
 	int						err;
+	int						ac_i;
+	int						opts;
 
-	if (ac < 2)
-		return invalid_arguments(av[0]);
+	ac_i = 1;
+
+	opts = opts_get(&opts_def, &ac_i, av);
+
+	err = opts == OPT_ERROR || (ac - ac_i < 1 && !(opts & OPT_HELP));
+
+	if (err || opts & OPT_HELP)
+	{
+		opts_usage(&opts_def, av[0]);
+		return err;
+	}
 
 	err = ip_host_address(&address, av[1], NULL);
 
