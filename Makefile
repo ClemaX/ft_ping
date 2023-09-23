@@ -24,6 +24,8 @@ LIBARS := $(notdir $(LIBS))
 INCS := $(LIBINCS) $(INCDIR)
 SRCS := $(addprefix $(SRCDIR)/,\
 	main.c\
+	opt_parse.c\
+	ping_stats.c\
 	ping.c\
 )
 
@@ -31,9 +33,10 @@ OBJS := $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 DEPS := $(OBJS:.o=.d)
 
 # Flags
-CFLAGS := -Wall -Wextra -Werror
+DBGFLAGS := -g3 -fsanitize=address
+CFLAGS := -Wall -Wextra -Werror $(DBGFLAGS)
 DFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
-LDFLAGS := $(LIBDIRS:%=-L%)
+LDFLAGS := $(LIBDIRS:%=-L%) $(DBGFLAGS)
 LDLIBS := $(LIBARS:lib%.a=-l%) -lm
 ARFLAGS := -rcus
 

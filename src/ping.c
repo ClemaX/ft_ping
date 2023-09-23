@@ -1,76 +1,77 @@
-#include <arpa/inet.h>
-
 #include <signal.h>
 #include <stdio.h>
-#include <math.h>
 #include <errno.h>
 
 #include <unistd.h>
 
-#include <icmp_echo.h>
 #include <time_utils.h>
 #include <ping.h>
 
 extern	sig_atomic_t interrupt;
 
-void	ping_stats_init(ping_stats *stats, const char *host_name,
-	const struct sockaddr_in *destination)
+static void	ping_response_print(const ping_stats *stats, icmp_packet *response,
+	float elapsed_ms)
 {
-	stats->host_name = host_name;
-	stats->destination = destination;
-	stats->host_presentation = inet_ntoa(destination->sin_addr);
-
-	stats->time.min_ms = INFINITY;
-	stats->time.max_ms = 0;
-
-	stats->time.sum_ms = 0;
-	stats->time.sum_ms_sq = 0;
-}
-
-void	ping_stats_print(const ping_stats *stats)
-{
-	float	elapsed_ms;
-	float	average_ms;
-	float	mean_deviation_ms;
-
-	elapsed_ms = TV_DIFF_MS(stats->time.start, stats->time.last_send);
-	average_ms = stats->time.sum_ms / stats->received;
-	mean_deviation_ms = sqrtf(stats->time.sum_ms_sq / stats->received
-		- average_ms * average_ms);
-
+#ifdef PING_STATS_RESPONSE_SHOW_HOSTNAME
 	printf(
-		"--- %s ping statistics ---\n"
-		"%u packets transmitted, %u received"
-		", %.0f%% packet loss, time %.0lfms\n",
-		stats->host_name,
-		stats->transmitted, stats->received,
-		(stats->transmitted - stats->received) * 100.0 / stats->transmitted,
+		"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.3lf ms\n",
+		sizeof(response.icmp_header) + sizeof(response.payload),
+		stats->host_name, stats->host_presentation,
+		ntohs(response.icmp_header.un.echo.sequence),
+		response.ip_header.ttl,
 		elapsed_ms
 	);
-
-	if (stats->received != 0)
-	{
-		printf(
-			"rtt min/avg/max/mdev = %.3f/%.3f/%.3f/%.3f ms\n",
-			stats->time.min_ms,
-			average_ms,
-			stats->time.max_ms,
-			mean_deviation_ms
-		);
-	}
+#else
+	printf(
+		"%zu bytes from %s: icmp_seq=%hu ttl=%hu time=%.3lf ms\n",
+		sizeof(response->icmp_header) + sizeof(response->payload),
+		stats->host_presentation,
+		ntohs(response->icmp_header.un.echo.sequence),
+		response->ip_header.ttl,
+		elapsed_ms
+	);
+#endif
 }
 
-int	ping(ping_stats *stats, int sd, int socket_type,
-	uint16_t id, uint64_t count)
+static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 {
-	static icmp_echo_params	params;
+	int	unexpected;
+
+	unexpected = 0;
+
+	if (!(error & ICMP_ECHO_ESEND))
+	{
+		++stats->transmitted;
+
+		stats->time.last_send = t[0];
+
+		if (!(error & ICMP_ECHO_ERECV))
+			++stats->received;
+		else if (!(error & ICMP_ECHO_ETIMEO))
+		{
+			if (errno != EINTR)
+				perror("recvmsg");
+			unexpected = 1;
+		}
+	}
+	else if (!(error & ICMP_ECHO_ETIMEO))
+	{
+		if (errno != EINTR)
+			perror("sendto");
+		unexpected = 1;
+	}
+
+	return unexpected;
+}
+
+int	ping(int sd, ping_stats *stats, icmp_echo_params *params)
+{
 	static icmp_packet		response;
 	static struct timeval	t[2];
 	float					elapsed_ms;
-	int						err;
+	int						error;
 
-	params.destination = stats->destination;
-	params.id = id;
+	params->destination = stats->destination;
 
 	printf("PING %s (%s) %zu(%zu) bytes of data.\n",
 		stats->host_name, stats->host_presentation,
@@ -78,68 +79,28 @@ int	ping(ping_stats *stats, int sd, int socket_type,
 
 	gettimeofday(&stats->time.start, NULL);
 
-	for (params.sequence = PING_SEQ_START;
+	for (params->sequence = PING_SEQ_START;
 		!interrupt
-		&& (count == 0 || params.sequence != count - PING_SEQ_START);
-		++params.sequence)
+		&& (params->count == 0
+			|| params->sequence != params->count + PING_SEQ_START);
+		++params->sequence)
 	{
+		if (params->sequence != PING_SEQ_START && params->interval_s != 0)
+			usleep(params->interval_s * 1000 * 1000);
+
 		// TODO: Test last send time with time-outs
-		err = icmp_echo(sd, socket_type, &params, &response, t);
+		error = icmp_echo(sd, params, &response, t);
 
-		if (!err)
+		if (!error)
 		{
-			++(stats->transmitted);
-			++(stats->received);
+			elapsed_ms = ping_stats_update(stats, t);
 
-			stats->time.last_send = t[0];
-
-			elapsed_ms = TV_DIFF_MS(t[0], t[1]);
-
-			stats->time.sum_ms += elapsed_ms;
-			stats->time.sum_ms_sq += elapsed_ms * elapsed_ms;
-
-			if (elapsed_ms < stats->time.min_ms)
-				stats->time.min_ms = elapsed_ms;
-
-			if (elapsed_ms > stats->time.max_ms)
-				stats->time.max_ms = elapsed_ms;
-
-			printf(
-				"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.1lf ms\n",
-				sizeof(response.icmp_header) + sizeof(response.payload),
-				stats->host_name, stats->host_presentation,
-				ntohs(response.icmp_header.un.echo.sequence),
-				response.ip_header.ttl,
-				elapsed_ms
-			);
+			if (!(params->options & OPT_QUIET))
+				ping_response_print(stats, &response, elapsed_ms);
 		}
-		else
-		{
-			if (!(err & ICMP_ECHO_ESEND))
-			{
-				++stats->transmitted;
-
-				stats->time.last_send = t[0];
-
-				if (!(err & ICMP_ECHO_ERECV))
-					++stats->received;
-				else if (!(err & ICMP_ECHO_ETIMEO))
-				{
-					if (errno != EINTR)
-						perror("recvmsg");
-					break;
-				}
-			}
-			else if (!(err & ICMP_ECHO_ETIMEO))
-			{
-				if (errno != EINTR)
-					perror("sendto");
-				break;
-			}
-		}
-
-		usleep(1000 * 1000);
+		else if (ping_error(stats, t, error))
+			break;
 	}
 
-	return err;
+	return error;
 }
