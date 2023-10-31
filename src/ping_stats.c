@@ -3,21 +3,22 @@
 #include <stdio.h>
 #include <math.h>
 
+#include <libft/memory.h>
+
 #include <time_utils.h>
 #include <ping.h>
+
 
 void	ping_stats_init(ping_stats *stats, const char *host_name,
 	const struct sockaddr_in *destination)
 {
+	ft_bzero(stats, sizeof(*stats));
+
 	stats->host_name = host_name;
 	stats->destination = destination;
 	stats->host_presentation = inet_ntoa(destination->sin_addr);
 
 	stats->time.min_ms = INFINITY;
-	stats->time.max_ms = 0;
-
-	stats->time.sum_ms = 0;
-	stats->time.sum_ms_sq = 0;
 }
 
 void	ping_stats_print(const ping_stats *stats)
