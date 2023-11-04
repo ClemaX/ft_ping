@@ -1,19 +1,27 @@
-FROM alpine as builder
+FROM debian:stable-slim as builder
 
-RUN apk add --no-cache bash gcc make libc-dev binutils build-base
+ENV DEBIAN_FRONTEND=noninteractive
 
-COPY . /build
+RUN apt update \
+	&& apt install -y bash gcc make libc-dev binutils \
+	&& rm -rf /var/lib/apt/lists/*
+
 WORKDIR /build
+COPY . /build
 
-RUN make -C /build CC=gcc NAME=ft_ping CFLAGS="-Wall -Wextra" && make clean
+RUN make -C /build CC=gcc NAME=ft_ping && make clean
 
-FROM alpine as runner
+FROM debian:stable-slim as runner
+
+RUN adduser --disabled-password runner
+
+RUN apt update \
+	&& apt install -y inetutils-ping \
+	&& rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+USER runner
 
 COPY --from=builder /build/ft_ping /app/ft_ping
-WORKDIR /app
-
-RUN adduser -D runner
-
-USER runner
 
 CMD ./ft_ping localhost
