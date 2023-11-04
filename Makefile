@@ -34,9 +34,9 @@ DEPS := $(OBJS:.o=.d)
 
 # Flags
 DBGFLAGS := -g3 -fsanitize=address
-CFLAGS := -Wall -Wextra -Werror $(DBGFLAGS)
+CFLAGS := -Wall -Wextra -Werror
 DFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
-LDFLAGS := $(LIBDIRS:%=-L%) $(DBGFLAGS)
+LDFLAGS := $(LIBDIRS:%=-L%)
 LDLIBS := $(LIBARS:lib%.a=-l%) -lm
 ARFLAGS := -rcus
 
