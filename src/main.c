@@ -1,177 +1,86 @@
-#include <netinet/in.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include <errno.h>
-#include <string.h>
 
 #include <signal.h>
-#include <sys/socket.h>
 #include <unistd.h>
-
-#include <socket_utils.h>
-#include <time_utils.h>
-
-#include <libft/opts.h>
 
 #include <ping.h>
 
-static const opt_spec	opt_specs[] =
+static ping_context				context;
+static volatile sig_atomic_t	loop_done;
+
+static void loop_stop() {
+	if (loop_done)
+		return;
+
+	loop_done = true;
+
+	signal(SIGALRM, SIG_DFL);
+	signal(SIGINT, SIG_IGN);
+
+	if (context.sd != -1) {
+		close(context.sd);
+		context.sd = -1;
+	}
+
+	if (!context.error) {
+		ping_stats_print(&context.stats);
+	}
+
+	exit(context.error);
+}
+
+static void	loop_on_tick(int signal)
 {
-	{
-		.short_flag = '?',
-		.long_flag = "help",
-		.description = "Display this information",
-	},
-	{
-		.short_flag = 'c',
-		.long_flag = "count",
-		.description = "Stop after sending N packets",
-		.parser = opt_parse_count,
-	},
-	{
-		.short_flag = 'd',
-		.long_flag = "debug",
-		.description = "Set the SO_DEBUG option",
-	},
-	{
-		.short_flag = 'i',
-		.long_flag = "interval",
-		.description = "Wait N seconds between sending each packet",
-		.parser = opt_parse_interval,
-	},
-	{
-		.long_flag = "ttl",
-		.description = "Set the IP Time to Live",
-		.parser = opt_parse_ttl,
-	},
-	{
-		.short_flag = 'T',
-		.long_flag = "tos",
-		.description = "Set the IP Type of Service(TOS) to N",
-		.parser = opt_parse_tos,
-	},
-	{
-		.short_flag = 'q',
-		.long_flag = "quiet",
-		.description = "Quiet output",
-	},
-};
+	(void)signal;
+	int	error;
 
-volatile sig_atomic_t	interrupt = 0;
+	error = ping(context.sd, &context.stats, &context.params);
 
-static void handle_interrupt(int signal)
+	context.error = error && !(error & ICMP_ECHO_ETIMEO) && errno != EINTR;
+
+	if (context.error || (context.params.count != 0 && ++context.params.icmp.sequence == context.params.count + PING_SEQ_START))
+		loop_stop();
+	else
+		alarm(context.params.interval_s);
+}
+
+static void loop_on_interrupt(int signal)
 {
 	(void)signal;
 
-	interrupt = signal;
+	printf("\n");
+	loop_stop();
 }
 
-static int	init_params(int ac, const char **av, icmp_echo_params *params,
-	const char **hostname)
-{
-	int	ai;
-	int	error;
+static void	loop_start() {
+	loop_done = 0;
 
-	*params = (icmp_echo_params)
-	{
-		.options = 0,
-		.time_to_live = 64,
-		.type_of_service = 0,
-		.interval_s = 1,
-	};
+	signal(SIGALRM, loop_on_tick);
+	signal(SIGINT, loop_on_interrupt);
 
-	ai = 1;
-	*hostname = NULL;
+	loop_on_tick(0);
 
-	params->options = opts_get(opt_specs,
-		sizeof(opt_specs) / sizeof(*opt_specs), av, &ai, params);
-
-	error = params->options == OPT_ERROR;
-	if (error || params->options & OPT_HELP)
-	{
-		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
-			av[0], " hostname");
-		return error;
-	}
-
-	error = -(ac - ai < 1);
-	if (error)
-	{
-		fprintf(stderr, "%s: missing host operand\n", av[0]);
-		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
-			av[0], " hostname");
-		return error;
-	}
-
-	*hostname = av[ai];
-
-	params->id = getpid();
-
-	return error;
-}
-
-static int	init_socket(icmp_echo_params *params)
-{
-	const struct timeval	timeout = TV_FROM_MS(PING_TIMEOUT_MS);
-	const int				on = 1;
-	int						sd;
-
-	sd = socket_icmp(&params->socket_type,
-		params->time_to_live, params->type_of_service);
-
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-
-	if (params->options & OPT_DEBUG)
-		setsockopt(sd, SOL_SOCKET, SO_DEBUG, &on, sizeof(on));
-	return sd;
+	while (true)
+		usleep(context.params.interval_s * 1000 * 1000);
 }
 
 int			main(int ac, const char **av)
 {
-	icmp_echo_params		params;
-	ping_stats				stats;
-	struct sockaddr_in		address;
-	struct addrinfo			*addresses;
-	int						sd;
-	int						error;
-	const char				*hostname;
+	int	error;
 
-	error = init_params(ac, av, &params, &hostname);
+	error = ping_context_init(ac, av, &context);
+
 	if (error)
 		return error;
 
-	error = ip_host_address(&addresses, hostname, NULL);
-	if (error)
-	{
-		fprintf(stderr, "%s: %s: %s\n", av[0], hostname, gai_strerror(error));
-		return error;
-	}
+	printf("PING %s (%s) %zu(%zu) bytes of data.\n",
+		context.stats.host_name, context.stats.host_presentation,
+		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
 
-	address = *(struct sockaddr_in*)addresses->ai_addr;
+	loop_start();
 
-	sd = init_socket(&params);
-
-	error = -(sd == -1);
-	if (!error)
-	{
-		signal(SIGINT, handle_interrupt);
-
-		ping_stats_init(&stats, hostname, &address);
-
-		error = ping(sd, &stats, &params);
-
-		error = error && !(error & ICMP_ECHO_ETIMEO) && errno != EINTR;
-
-		if (!error && stats.transmitted != 0)
-			ping_stats_print(&stats);
-
-		close(sd);
-	}
-	else
-		fprintf(stderr, "%s: %s: %s\n", av[0], "socket", strerror(errno));
-
-	freeaddrinfo(addresses);
-
-	return (error);
+	return -1;
 }

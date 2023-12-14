@@ -7,7 +7,7 @@
 #include <time_utils.h>
 #include <ping.h>
 
-extern	sig_atomic_t interrupt;
+//extern	sig_atomic_t interrupt;
 
 static void	ping_response_print(const ping_stats *stats, icmp_packet *response,
 	float elapsed_ms)
@@ -64,43 +64,27 @@ static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 	return unexpected;
 }
 
-int	ping(int sd, ping_stats *stats, icmp_echo_params *params)
+int	ping(int sd, ping_stats *stats, ping_params *params)
 {
 	static icmp_packet		response;
 	static struct timeval	t[2];
 	float					elapsed_ms;
 	int						error;
 
-	params->destination = stats->destination;
-
-	printf("PING %s (%s) %zu(%zu) bytes of data.\n",
-		stats->host_name, stats->host_presentation,
-		sizeof(((icmp_packet*)NULL)->payload), sizeof(icmp_packet));
-
 	gettimeofday(&stats->time.start, NULL);
 
-	for (params->sequence = PING_SEQ_START;
-		!interrupt
-		&& (params->count == 0
-			|| params->sequence != params->count + PING_SEQ_START);
-		++params->sequence)
+	// TODO: Test last send time with time-outs
+	error = icmp_echo(sd, &params->icmp, &response, t);
+
+	if (!error)
 	{
-		if (params->sequence != PING_SEQ_START && params->interval_s != 0)
-			usleep(params->interval_s * 1000 * 1000);
+		elapsed_ms = ping_stats_update(stats, t);
 
-		// TODO: Test last send time with time-outs
-		error = icmp_echo(sd, params, &response, t);
-
-		if (!error)
-		{
-			elapsed_ms = ping_stats_update(stats, t);
-
-			if (!(params->options & OPT_QUIET))
-				ping_response_print(stats, &response, elapsed_ms);
-		}
-		else if (ping_error(stats, t, error))
-			break;
+		if (!(params->options & OPT_QUIET))
+			ping_response_print(stats, &response, elapsed_ms);
 	}
+	else if (ping_error(stats, t, error))
+		return error;
 
-	return error;
+	return 0;
 }

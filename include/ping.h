@@ -39,14 +39,33 @@ typedef struct	ping_stats
 		float			min_ms;
 		float			max_ms;
 	}							time;
-	const struct sockaddr_in	*destination;
 	const char					*host_name;
 	const char					*host_presentation;
 	unsigned					transmitted;
 	unsigned					received;
 }				ping_stats;
 
-int		ping(int sd, ping_stats *stats, icmp_echo_params *params);
+typedef struct	ping_params
+{
+	icmp_echo_params	icmp;
+	const char			*host_name;
+	uint64_t			count;
+	float				interval_s;
+	int					options;
+}				ping_params;
+
+typedef struct	ping_context
+{
+	ping_stats	stats;
+	ping_params	params;
+	int			sd;
+	int			error;
+}				ping_context;
+
+int		ping(int sd, ping_stats *stats, ping_params *params);
+
+
+int		ping_context_init(int ac, const char **av, ping_context *context);
 
 void	ping_stats_init(ping_stats *stats, const char *host_name,
 	const struct sockaddr_in *destination);

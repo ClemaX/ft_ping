@@ -9,9 +9,9 @@
 
 const char	*opt_parse_ttl(const char **av, int *ai, void *data)
 {
-	icmp_echo_params *const	params = (icmp_echo_params*)data;
-	const char				*end;
-	long					value;
+	ping_params *const	params = (ping_params*)data;
+	const char			*end;
+	long				value;
 
 	if (av == NULL)
 		return "N";
@@ -29,16 +29,16 @@ const char	*opt_parse_ttl(const char **av, int *ai, void *data)
 
 	++(*ai);
 
-	params->time_to_live = value;
+	params->icmp.time_to_live = value;
 
 	return NULL;
 }
 
 const char	*opt_parse_count(const char **av, int *ai, void *data)
 {
-	icmp_echo_params *const	params = (icmp_echo_params*)data;
-	const char				*end;
-	long					value;
+	ping_params *const	params = (ping_params*)data;
+	const char			*end;
+	long				value;
 
 	if (av == NULL)
 		return "N";
@@ -66,9 +66,9 @@ const char	*opt_parse_count(const char **av, int *ai, void *data)
 
 const char	*opt_parse_interval(const char **av, int *ai, void *data)
 {
-	icmp_echo_params *const	params = (icmp_echo_params*)data;
-	char					*end;
-	float					value;
+	ping_params *const	params = (ping_params*)data;
+	char				*end;
+	float				value;
 
 	if (av == NULL)
 		return "N";
@@ -93,9 +93,9 @@ const char	*opt_parse_interval(const char **av, int *ai, void *data)
 
 const char	*opt_parse_tos(const char **av, int *ai, void *data)
 {
-	icmp_echo_params *const	params = (icmp_echo_params*)data;
-	const char				*end;
-	long					value;
+	ping_params *const	params = (ping_params*)data;
+	const char			*end;
+	long				value;
 
 	if (av == NULL)
 		return "N";
@@ -113,7 +113,7 @@ const char	*opt_parse_tos(const char **av, int *ai, void *data)
 
 	++(*ai);
 
-	params->type_of_service = (uint64_t)value;
+	params->icmp.type_of_service = (uint64_t)value;
 
 	return NULL;
 }

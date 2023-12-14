@@ -15,7 +15,6 @@ void	ping_stats_init(ping_stats *stats, const char *host_name,
 	ft_bzero(stats, sizeof(*stats));
 
 	stats->host_name = host_name;
-	stats->destination = destination;
 	stats->host_presentation = inet_ntoa(destination->sin_addr);
 
 	stats->time.min_ms = INFINITY;
