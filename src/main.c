@@ -26,6 +26,7 @@ static void loop_stop() {
 	}
 
 	if (!context.error) {
+		printf("\n");
 		ping_stats_print(&context.stats);
 	}
 
@@ -51,7 +52,6 @@ static void loop_on_interrupt(int signal)
 {
 	(void)signal;
 
-	printf("\n");
 	loop_stop();
 }
 
