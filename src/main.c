@@ -43,9 +43,14 @@ static void	loop_on_tick(int signal)
 	context.error = error && !(error & ICMP_ECHO_ETIMEO) && errno != EINTR;
 
 	if (context.error || (context.params.count != 0 && ++context.params.icmp.sequence == context.params.count + PING_SEQ_START))
+	{
 		loop_stop();
-	else
-		alarm(context.params.interval_s);
+		return;
+	}
+
+	++context.params.icmp.sequence;
+
+	alarm(context.params.interval_s);
 }
 
 static void loop_on_interrupt(int signal)
