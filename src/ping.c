@@ -7,18 +7,16 @@
 #include <time_utils.h>
 #include <ping.h>
 
-//extern	sig_atomic_t interrupt;
-
 static void	ping_response_print(const ping_stats *stats, icmp_packet *response,
 	float elapsed_ms)
 {
 #ifdef PING_STATS_RESPONSE_SHOW_HOSTNAME
 	printf(
 		"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.3lf ms\n",
-		sizeof(response.icmp_header) + sizeof(response.payload),
+		sizeof(response->icmp_header) + sizeof(response->payload),
 		stats->host_name, stats->host_presentation,
-		ntohs(response.icmp_header.un.echo.sequence),
-		response.ip_header.ttl,
+		ntohs(response->icmp_header.un.echo.sequence),
+		response->ip_header.ttl,
 		elapsed_ms
 	);
 #else
