@@ -117,6 +117,7 @@ static int	ping_init_socket(ping_params *params)
 
 	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+	setsockopt(sd, SOL_IP, IP_RECVERR, &on, sizeof(on));
 
 	if (params->options & OPT_DEBUG)
 		setsockopt(sd, SOL_SOCKET, SO_DEBUG, &on, sizeof(on));

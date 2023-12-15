@@ -1,3 +1,4 @@
+#include "icmp_echo.h"
 #include <signal.h>
 #include <stdio.h>
 #include <errno.h>
@@ -33,9 +34,11 @@ static void	ping_response_print(const ping_stats *stats, icmp_packet *response,
 
 static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 {
-	int	unexpected;
+	int			unexpected;
+	const char	*error_message;
 
 	unexpected = 0;
+	error_message = NULL;
 
 	if (!(error & ICMP_ECHO_ESEND))
 	{
@@ -47,17 +50,34 @@ static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 			++stats->received;
 		else if (!(error & ICMP_ECHO_ETIMEO))
 		{
-			if (errno != EINTR)
-				perror("recvmsg");
-			unexpected = 1;
+			if (error & ICMP_ECHO_EDEST_UNREACH)
+				error_message = "Destination unreachable";
+			else if (error & ICMP_ECHO_ESOURCE_QUENCH)
+				error_message = "Source quench";
+			else if (error & ICMP_ECHO_EREDIRECT)
+				error_message = "Redirect (change route)";
+			else
+			{
+				if (errno != EINTR)
+					perror("recvmsg");
+
+				error_message = "Unexpected error";
+
+				unexpected = 1;
+			}
 		}
 	}
 	else if (!(error & ICMP_ECHO_ETIMEO))
 	{
 		if (errno != EINTR)
 			perror("sendto");
+
+		error_message = "Unexpected error";
+
 		unexpected = 1;
 	}
+
+	printf("From %s: %s\n", stats->host_presentation, error_message);
 
 	return unexpected;
 }
