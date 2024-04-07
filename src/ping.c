@@ -77,6 +77,7 @@ static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 		unexpected = 1;
 	}
 
+	if (error_message != NULL)
 	printf("From %s: %s\n", stats->host_presentation, error_message);
 
 	return unexpected;
