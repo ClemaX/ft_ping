@@ -1,5 +1,4 @@
-#include "icmp_echo.h"
-#include <signal.h>
+#include <arpa/inet.h>
 #include <stdio.h>
 #include <errno.h>
 
@@ -15,16 +14,17 @@ static void	ping_response_print(const ping_stats *stats, icmp_packet *response,
 	printf(
 		"%zu bytes from %s (%s): icmp_seq=%hu ttl=%hu time=%.3lf ms\n",
 		sizeof(response->icmp_header) + sizeof(response->payload),
-		stats->host_name, stats->host_presentation,
+		stats->host_name, inet_ntoa((struct in_addr){response->ip_header.saddr}),
 		ntohs(response->icmp_header.un.echo.sequence),
 		response->ip_header.ttl,
 		elapsed_ms
 	);
 #else
+	(void) stats;
 	printf(
 		"%zu bytes from %s: icmp_seq=%hu ttl=%hu time=%.3lf ms\n",
 		sizeof(response->icmp_header) + sizeof(response->payload),
-		stats->host_presentation,
+		inet_ntoa((struct in_addr){response->ip_header.saddr}),
 		ntohs(response->icmp_header.un.echo.sequence),
 		response->ip_header.ttl,
 		elapsed_ms
@@ -78,7 +78,7 @@ static int	ping_error(ping_stats *stats, const struct timeval t[2], int error)
 	}
 
 	if (error_message != NULL)
-	printf("From %s: %s\n", stats->host_presentation, error_message);
+		printf("From %s: %s\n", stats->host_presentation, error_message);
 
 	return unexpected;
 }
