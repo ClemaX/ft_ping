@@ -22,6 +22,6 @@ RUN apt update \
 WORKDIR /app
 USER runner
 
-COPY --from=builder /build/ft_ping /app/ft_ping
+COPY --from=builder --chmod=4755 /build/ft_ping /app/ft_ping
 
 CMD ./ft_ping localhost
