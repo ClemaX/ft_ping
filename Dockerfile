@@ -1,4 +1,4 @@
-FROM debian:stable-slim as builder
+FROM debian:stable-slim AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -9,14 +9,14 @@ RUN apt update \
 WORKDIR /build
 COPY . /build
 
-RUN make -C /build CC=gcc NAME=ft_ping && make clean
+RUN --mount=type=cache,target=/build/obj make -C /build CC=gcc NAME=ft_ping && make clean
 
-FROM debian:stable-slim as runner
+FROM debian:stable-slim AS runner
 
 RUN adduser --disabled-password runner
 
 RUN apt update \
-	&& apt install -y inetutils-ping \
+	&& apt install -y iproute2 inetutils-ping \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
