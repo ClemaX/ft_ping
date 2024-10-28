@@ -12,5 +12,6 @@ obj/
 !.vscode/c_cpp_properties.json
 
 # clangd
+.clangd/
 .cache/
 compile_commands.json
