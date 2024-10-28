@@ -25,7 +25,7 @@ INCS := $(LIBINCS) $(INCDIR)
 SRCS := $(addprefix $(SRCDIR)/,\
 	main.c\
 	opt_parse.c\
-	ping_context.c\
+	ping_params.c\
 	ping_stats.c\
 	ping.c\
 )

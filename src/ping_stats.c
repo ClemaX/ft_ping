@@ -29,7 +29,7 @@ void	ping_stats_print(const ping_stats *stats)
 	mean_deviation_ms = sqrtf(stats->time.sum_ms_sq / stats->received
 		- average_ms * average_ms);
 
-#ifdef PING_STATS_SHOW_ELAPSED
+#if PING_STATS_SHOW_ELAPSED
 	float elapsed_ms = TV_DIFF_MS(stats->time.start, stats->time.last_send);
 
 	printf(
@@ -70,8 +70,6 @@ float	ping_stats_update(ping_stats *stats, const struct timeval t[2])
 
 	++(stats->transmitted);
 	++(stats->received);
-
-	stats->time.last_send = t[0];
 
 	elapsed_ms = TV_DIFF_MS(t[0], t[1]);
 

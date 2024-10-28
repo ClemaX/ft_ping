@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
 
 #include <ping.h>
 
 #include <libft/opts.h>
-#include <socket_utils.h>
-#include <time_utils.h>
 
 static const opt_spec	opt_specs[] =
 {
@@ -51,12 +48,11 @@ static const opt_spec	opt_specs[] =
 	},
 };
 
-
-static int	ping_init_params(int ac, const char **av, ping_params *params)
+int						ping_params_init(ping_params *params, int ac, const char **av)
 {
-	struct addrinfo		*addresses;
-	int	ai;
-	int	error;
+	struct addrinfo	*addresses;
+	int				ai;
+	int				error;
 
 	*params = (ping_params)
 	{
@@ -101,48 +97,6 @@ static int	ping_init_params(int ac, const char **av, ping_params *params)
 
 	params->icmp.destination = *(struct sockaddr_in*)addresses->ai_addr;
 	freeaddrinfo(addresses);
-
-	params->icmp.id = getpid();
-
-	return error;
-}
-
-static int	ping_init_socket(ping_params *params)
-{
-	const struct timeval	timeout = TV_FROM_MS(PING_TIMEOUT_MS);
-	const int				on = 1;
-	int						sd;
-
-	sd = socket_icmp(&params->icmp.socket_type, params->icmp.time_to_live, params->icmp.type_of_service);
-
-	setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-	setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-	setsockopt(sd, SOL_IP, IP_RECVERR, &on, sizeof(on));
-
-	if (params->options & OPT_DEBUG)
-		setsockopt(sd, SOL_SOCKET, SO_DEBUG, &on, sizeof(on));
-	return sd;
-}
-
-int			ping_context_init(int ac, const char **av, ping_context *context) {
-	int	error;
-
-	error = ping_init_params(ac, av, &context->params);
-	if (error)
-		return error;
-
-	context->sd = ping_init_socket(&context->params);
-
-	error = -(context->sd == -1);
-	if (error)
-	{
-		fprintf(stderr, "%s: %s: %s\n", av[0], "socket", strerror(errno));
-		return error;
-	}
-
-	ping_stats_init(&context->stats, context->params.host_name, &context->params.icmp.destination);
-
-	context->params.icmp.sequence = PING_SEQ_START;
 
 	return error;
 }
