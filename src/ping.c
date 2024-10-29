@@ -165,7 +165,7 @@ static int ping_loop_start(int sd, const ping_params *params, ping_stats *stats)
 		if (loop_done || (params->count != 0 && sequence == params->count + PING_SEQ_START))
 			break;
 
-		usleep(1000 * 1000 - elapsed_ms);
+		usleep(1000 * (1000 - elapsed_ms));
 	}
 
 	return status;
