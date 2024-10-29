@@ -88,7 +88,7 @@ static int	ping_error(ping_stats *stats, int error)
 		else if (!(error & ICMP_ECHO_ETIMEO))
 		{
 			if (error & ICMP_ECHO_EDEST_UNREACH)
-				error_message = "Destination unreachable";
+				error_message = "Time to live exceeded";
 			else if (error & ICMP_ECHO_ESOURCE_QUENCH)
 				error_message = "Source quench";
 			else if (error & ICMP_ECHO_EREDIRECT)
@@ -113,7 +113,7 @@ static int	ping_error(ping_stats *stats, int error)
 		if (unexpected)
 			printf("%s: %s\n", error_message, strerror(errno));
 		else
-			printf("From %s: %s\n", stats->host_presentation, error_message);
+			printf("%zu bytes from %s: %s\n", sizeof(icmp_packet) - sizeof(ip_header), stats->host_presentation, error_message);
 	}
 
 	return unexpected;
