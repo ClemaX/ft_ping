@@ -13,7 +13,7 @@
 # endif
 
 # ifndef PING_SEQ_START
-#  define PING_SEQ_START 1
+#  define PING_SEQ_START 0
 # endif
 
 enum options
