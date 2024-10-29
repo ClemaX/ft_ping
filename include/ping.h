@@ -54,26 +54,15 @@ typedef struct	ping_params
 	int					options;
 }				ping_params;
 
-typedef struct	ping_context
-{
-	ping_stats	stats;
-	ping_params	params;
-	int			sd;
-	int			error;
-}				ping_context;
-
 int			ping(int sd, const ping_params *params, ping_stats *stats);
 
 int			ping_params_init(ping_params *params, int ac, const char **av);
-
 int			ping_socket_init(ping_params *params);
-
-// int		ping_context_init(int ac, const char **av, ping_context *context);
 
 void		ping_stats_init(ping_stats *stats, const char *host_name,
 	const struct sockaddr_in *destination);
 void		ping_stats_print(const ping_stats *stats);
-float		ping_stats_update(ping_stats *stats, const struct timeval t[2]);
+void		ping_stats_update(ping_stats *stats, float elapsed_ms);
 
 const char	*opt_parse_ttl(const char **av, int *ai, void *data);
 const char	*opt_parse_tos(const char **av, int *ai, void *data);

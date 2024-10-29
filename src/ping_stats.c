@@ -64,15 +64,8 @@ void	ping_stats_print(const ping_stats *stats)
 	}
 }
 
-float	ping_stats_update(ping_stats *stats, const struct timeval t[2])
+void	ping_stats_update(ping_stats *stats, float elapsed_ms)
 {
-	float					elapsed_ms;
-
-	++(stats->transmitted);
-	++(stats->received);
-
-	elapsed_ms = TV_DIFF_MS(t[0], t[1]);
-
 	stats->time.sum_ms += elapsed_ms;
 	stats->time.sum_ms_sq += elapsed_ms * elapsed_ms;
 
@@ -81,6 +74,4 @@ float	ping_stats_update(ping_stats *stats, const struct timeval t[2])
 
 	if (elapsed_ms > stats->time.max_ms)
 		stats->time.max_ms = elapsed_ms;
-
-	return elapsed_ms;
 }

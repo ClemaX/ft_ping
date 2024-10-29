@@ -27,7 +27,7 @@ int			main(int ac, const char **av)
 	}
 
 #if SOCKET_ICMP_USE_DGRAM
-	if (context->params.icmp.socket_type == SOCK_RAW)
+	if (params.icmp.socket_type == SOCK_RAW)
 #endif
 	{
 		params.icmp.id = getpid();
