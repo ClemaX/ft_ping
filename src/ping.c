@@ -1,5 +1,3 @@
-#include "icmp_echo.h"
-#include "icmp_packet.h"
 #include <arpa/inet.h>
 #include <signal.h>
 #include <stdio.h>
@@ -25,7 +23,8 @@ static void					ping_loop_on_interrupt(int signo)
 }
 
 static inline void			ping_response_print(const ping_stats *stats,
-	const icmp_packet *response, float elapsed_ms, bool checksum_invalid)
+	const icmp_response_packet *response, size_t size, float elapsed_ms,
+	bool checksum_invalid)
 {
 	char		message_buffer[96];
 	const char	*message;
@@ -48,7 +47,7 @@ static inline void			ping_response_print(const ping_stats *stats,
 #if PING_STATS_RESPONSE_SHOW_HOSTNAME
 	printf(
 		"%zu bytes from %s (%s): %s\n",
-		sizeof(response->icmp_header) + sizeof(response->payload),
+		size,
 		stats->host_name,
 		inet_ntoa((struct in_addr){response->ip_header.saddr}),
 		message
@@ -57,14 +56,14 @@ static inline void			ping_response_print(const ping_stats *stats,
 	(void)	stats;
 	printf(
 		"%zu bytes from %s: %s\n",
-		sizeof(response->icmp_header) + sizeof(response->payload),
+		size,
 		inet_ntoa((struct in_addr){response->ip_header.saddr}),
 		message
 	);
 #endif
 }
 
-static inline bool		ping_response_match(const icmp_packet *response,
+static inline bool		ping_response_match(const icmp_response_packet *response,
 	const ping_params *params, uint16_t sequence)
 {
 	return response->icmp_header.type != ICMP_ECHO
@@ -79,10 +78,10 @@ static inline bool		ping_response_match(const icmp_packet *response,
 static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 	uint16_t sequence, ping_stats *stats, float *elapsed_ms)
 {
-	static struct icmp_packet	response;
-	static struct timeval		t[2];
-	const char					*message;
-	int							status;
+	static struct icmp_response_packet	response;
+	static struct timeval				t[2];
+	size_t								response_size;
+	int									status;
 
 	status = icmp_echo_send(sd, &params->icmp, sequence, &t[0]);
 
@@ -92,11 +91,11 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 	++stats->transmitted;
 
 	do {
-		status = icmp_echo_recv(sd, &params->icmp, &response, &t[1]);
+		status = icmp_echo_recv(sd, &params->icmp,
+			&response, &response_size, &t[1]);
 	} while (status == 0 && !ping_response_match(&response, params, sequence));
 
 	*elapsed_ms = TV_DIFF_MS(t[0], t[1]);
-	message = NULL;
 
 	if (status == 0 && response.icmp_header.type == ICMP_ECHOREPLY)
 	{
@@ -105,20 +104,8 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 	}
 
 	if (!(params->options & OPT_QUIET) && !(status & ~ICMP_ECHO_ECHECKSUM))
-		ping_response_print(stats, &response, *elapsed_ms,
+		ping_response_print(stats, &response, response_size, *elapsed_ms,
 			(status & ICMP_ECHO_ECHECKSUM) == ICMP_ECHO_ECHECKSUM);
-
-	if (message)
-	{
-		const char	*source_presentation = inet_ntoa((struct in_addr){
-			response.ip_header.saddr});
-
-		printf("%zu bytes from %s (%s): %s\n",
-			sizeof(icmp_packet) - sizeof(ip_header),
-			source_presentation,
-			source_presentation,
-			message);
-	}
 
 	return status;
 }
@@ -177,7 +164,7 @@ int							ping(int sd, const ping_params *params,
 
 	printf("PING %s (%s) %zu data bytes\n",
 		stats->host_name, stats->host_presentation,
-		sizeof(((icmp_packet*)NULL)->payload));
+		sizeof(((icmp_echo_packet*)NULL)->payload));
 
 	return ping_loop_start(sd, params, stats);
 }
