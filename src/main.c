@@ -11,7 +11,6 @@ int			main(int ac, const char **av)
 	int					status;
 	int					sd;
 
-	// status = ping_context_init(ac, av, &context);
 	status = ping_params_init(&params, ac, av);
 
 	if (status || params.options & OPT_HELP)
@@ -41,7 +40,6 @@ int			main(int ac, const char **av)
 		sd = -1;
 	}
 
-	printf("\n");
 	ping_stats_print(&stats);
 
 	return status;
