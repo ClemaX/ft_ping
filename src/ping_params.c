@@ -46,9 +46,15 @@ static const opt_spec	opt_specs[] =
 		.long_flag = "quiet",
 		.description = "Quiet output",
 	},
+	{
+		.short_flag = 'v',
+		.long_flag = "verbose",
+		.description = "Verbose output",
+	},
 };
 
-int						ping_params_init(ping_params *params, int ac, const char **av)
+int						ping_params_init(ping_params *params, int ac,
+	const char **av)
 {
 	struct addrinfo	*addresses;
 	int				ai;

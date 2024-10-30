@@ -26,14 +26,13 @@ enum options
 	OPT_TTL = 1 << 4,
 	OPT_TOS = 1 << 5,
 	OPT_QUIET = 1 << 6,
+	OPT_VERBOSE = 1 << 7,
 };
 
 typedef struct	ping_stats
 {
 	struct
 	{
-		// struct timeval	start;
-		// struct timeval	last_send;
 		float			sum_ms;
 		float			sum_ms_sq;
 		float			min_ms;

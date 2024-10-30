@@ -1,5 +1,8 @@
+#include "icmp_packet.h"
 #include <arpa/inet.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -22,16 +25,60 @@ static void					ping_loop_on_interrupt(int signo)
 	signal(SIGINT, SIG_IGN);
 }
 
-static inline void			ping_response_print(const ping_stats *stats,
-	const icmp_response_packet *response, float elapsed_ms,
-	bool checksum_invalid)
+static inline void			ping_ip_header_print(
+	const icmp_response_packet *response)
 {
+	const uint16_t	frag_off = ntohs(response->payload.error.ip_header.frag_off);
+	char			source_presentation[INET_ADDRSTRLEN];
+	char			destination_presentation[INET_ADDRSTRLEN];
+
+	inet_ntop(AF_INET, &response->payload.error.ip_header.saddr,
+		source_presentation, sizeof(source_presentation));
+	inet_ntop(AF_INET, &response->payload.error.ip_header.daddr,
+		destination_presentation, sizeof(destination_presentation));
+
+	printf(
+		"IP Hdr Dump:\n\
+ %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n\
+Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src	Dst	Data\n\
+%2u %2u  %02x %04x %04x %3u %04x  %02x  %02x %04x %s  %s\n\
+",
+		ntohs(((uint16_t*)&response->payload)[0]),
+		ntohs(((uint16_t*)&response->payload)[1]),
+		ntohs(((uint16_t*)&response->payload)[2]),
+		ntohs(((uint16_t*)&response->payload)[3]),
+		ntohs(((uint16_t*)&response->payload)[4]),
+		ntohs(((uint16_t*)&response->payload)[5]),
+		ntohs(((uint16_t*)&response->payload)[6]),
+		ntohs(((uint16_t*)&response->payload)[7]),
+		ntohs(((uint16_t*)&response->payload)[8]),
+		ntohs(((uint16_t*)&response->payload)[9]),
+		response->payload.error.ip_header.version,
+		response->payload.error.ip_header.ihl,
+		response->payload.error.ip_header.tos,
+		ntohs(response->payload.error.ip_header.tot_len),
+		ntohs(response->payload.error.ip_header.id),
+		(frag_off & ~IP_OFFMASK) >> 13,
+		frag_off & IP_OFFMASK,
+		response->payload.error.ip_header.ttl,
+		response->payload.error.ip_header.protocol,
+		response->payload.error.ip_header.check,
+		source_presentation,
+		destination_presentation
+	);
+}
+
+static inline void			ping_response_print(
+	const icmp_response_packet *response, float elapsed_ms,
+	const ping_params *params)
+{
+	const bool	is_reply = response->icmp_header.type == ICMP_ECHOREPLY;
 	char		message_buffer[96];
 	const char	*message;
 
-	if (checksum_invalid)
+	if (!response->is_valid)
 		message = "Invalid checksum";
-	else if (response->icmp_header.type == ICMP_ECHOREPLY)
+	else if (is_reply)
 	{
 		snprintf(message_buffer, sizeof(message_buffer),
 			"icmp_seq=%hu ttl=%hu time=%.3lf ms",
@@ -44,23 +91,22 @@ static inline void			ping_response_print(const ping_stats *stats,
 	else
 		message = icmp_type_strerror(response->icmp_header.type);
 
-#if PING_STATS_RESPONSE_SHOW_HOSTNAME
-	printf(
-		"%zu bytes from %s (%s): %s\n",
-		response->size,
-		stats->host_name,
-		inet_ntoa((struct in_addr){response->ip_header.saddr}),
-		message
-	);
-#else
-	(void)	stats;
 	printf(
 		"%zu bytes from %s: %s\n",
 		response->size,
 		inet_ntoa((struct in_addr){response->ip_header.saddr}),
 		message
 	);
+
+	if (!is_reply && (params->options & OPT_VERBOSE))
+	{
+#if SOCKET_ICMP_USE_DGRAM
+		if (params->icmp.socket_type == SOCK_RAW)
 #endif
+		{
+			ping_ip_header_print(response);
+		}
+	}
 }
 
 static inline bool		ping_response_match(const icmp_response_packet *response,
@@ -81,6 +127,7 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 	static struct icmp_response_packet	response;
 	static struct timeval				t[2];
 	int									status;
+	bool								is_reply;
 
 	status = icmp_echo_send(sd, &params->icmp, sequence, &t[0]);
 
@@ -95,15 +142,20 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 
 	*elapsed_ms = TV_DIFF_MS(t[0], t[1]);
 
-	if (status == 0 && response.icmp_header.type == ICMP_ECHOREPLY)
+	if (status == 0)
 	{
-		++stats->received;
-		ping_stats_update(stats, *elapsed_ms);
+		is_reply = response.icmp_header.type == ICMP_ECHOREPLY;
+
+		if (response.is_valid && is_reply)
+		{
+			++stats->received;
+			ping_stats_update(stats, *elapsed_ms);
+		}
+
+		if (!is_reply || !(params->options & OPT_QUIET))
+			ping_response_print(&response, *elapsed_ms, params);
 	}
 
-	if (!(params->options & OPT_QUIET) && !(status & ~ICMP_ECHO_ECHECKSUM))
-		ping_response_print(stats, &response, *elapsed_ms,
-			(status & ICMP_ECHO_ECHECKSUM) == ICMP_ECHO_ECHECKSUM);
 
 	return status;
 }
