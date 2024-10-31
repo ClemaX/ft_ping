@@ -225,7 +225,7 @@ int							ping(int sd, const ping_params *params,
 {
 	ping_stats_init(stats, params->host_name, &params->icmp.destination);
 
-	printf("PING %s (%s) %zu data bytes\n",
+	printf("PING %s (%s): %zu data bytes\n",
 		stats->host_name, stats->host_presentation,
 		sizeof(((icmp_echo_packet*)NULL)->payload));
 
