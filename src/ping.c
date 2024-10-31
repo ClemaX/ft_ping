@@ -1,10 +1,6 @@
-#include "icmp_packet.h"
 #include <arpa/inet.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 
 #include <socket_utils.h>
@@ -28,44 +24,58 @@ static void					ping_loop_on_interrupt(int signo)
 static inline void			ping_ip_header_print(
 	const icmp_response_packet *response)
 {
-	const uint16_t	frag_off = ntohs(response->payload.error.ip_header.frag_off);
-	char			source_presentation[INET_ADDRSTRLEN];
-	char			destination_presentation[INET_ADDRSTRLEN];
+	const ip_header *const	header = (ip_header*)&response->payload;
+	const uint16_t			*header_data = (uint16_t*)header;
+	const uint16_t			frag_off = ntohs(header->frag_off);
+	char					source_presentation[INET_ADDRSTRLEN];
+	char					destination_presentation[INET_ADDRSTRLEN];
 
-	inet_ntop(AF_INET, &response->payload.error.ip_header.saddr,
+	inet_ntop(AF_INET, &header->saddr,
 		source_presentation, sizeof(source_presentation));
-	inet_ntop(AF_INET, &response->payload.error.ip_header.daddr,
+	inet_ntop(AF_INET, &header->daddr,
 		destination_presentation, sizeof(destination_presentation));
 
 	printf(
 		"IP Hdr Dump:\n\
- %04x %04x %04x %04x %04x %04x %04x %04x %04x %04x\n\
-Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src	Dst	Data\n\
-%2u %2u  %02x %04x %04x %3u %04x  %02x  %02x %04x %s  %s\n\
+ %04hx %04hx %04hx %04hx %04hx %04hx %04hx %04hx %04hx %04hx\n\
+Vr "	"HL "		"TOS  "		"Len   "	"ID "		"Flg  "		"off "		"TTL "		"Pro  "		"cks      "	"Src	"	"Dst	Data\n\
+%2hhu "	"%2hhu  "	"%02hx "	"%04hx "	"%04hx "	"%3hhu "	"%04hx  "	"%02hhx  "	"%02hhx "	"%04hx "	"%s  "		"%s\n\
 ",
-		ntohs(((uint16_t*)&response->payload)[0]),
-		ntohs(((uint16_t*)&response->payload)[1]),
-		ntohs(((uint16_t*)&response->payload)[2]),
-		ntohs(((uint16_t*)&response->payload)[3]),
-		ntohs(((uint16_t*)&response->payload)[4]),
-		ntohs(((uint16_t*)&response->payload)[5]),
-		ntohs(((uint16_t*)&response->payload)[6]),
-		ntohs(((uint16_t*)&response->payload)[7]),
-		ntohs(((uint16_t*)&response->payload)[8]),
-		ntohs(((uint16_t*)&response->payload)[9]),
-		response->payload.error.ip_header.version,
-		response->payload.error.ip_header.ihl,
-		response->payload.error.ip_header.tos,
-		ntohs(response->payload.error.ip_header.tot_len),
-		ntohs(response->payload.error.ip_header.id),
-		(frag_off & ~IP_OFFMASK) >> 13,
-		frag_off & IP_OFFMASK,
-		response->payload.error.ip_header.ttl,
-		response->payload.error.ip_header.protocol,
-		response->payload.error.ip_header.check,
-		source_presentation,
-		destination_presentation
+		ntohs(header_data[0]), ntohs(header_data[1]), ntohs(header_data[2]),
+		ntohs(header_data[3]), ntohs(header_data[4]), ntohs(header_data[5]),
+		ntohs(header_data[6]), ntohs(header_data[7]), ntohs(header_data[8]),
+		ntohs(header_data[9]),
+		(uint8_t)header->version, (uint8_t)header->ihl, header->tos,
+		ntohs(header->tot_len), ntohs(header->id),
+		(uint8_t)((frag_off & ~IP_OFFMASK) >> 13), (uint16_t)(frag_off & IP_OFFMASK),
+		header->ttl, header->protocol, ntohs(header->check),
+		source_presentation, destination_presentation
 	);
+}
+
+static inline void			ping_icmp_header_print(
+	const icmp_response_packet *response)
+{
+	const icmp_error_payload *const	payload = &response->payload.error;
+	const icmp_header *const		header = (icmp_header*)payload->data;
+	const size_t					size =
+		ntohs(payload->ip_header.tot_len) - (payload->ip_header.ihl << 2);
+
+	if (header->type == ICMP_ECHO || header->type == ICMP_ECHOREPLY)
+	{
+		printf(
+			"ICMP: type %hhu, code %hhu, size %zu, id 0x%04hx, seq 0x%04hx\n",
+			header->type, header->code, size,
+			ntohs(header->un.echo.id), ntohs(header->un.echo.sequence)
+		);
+	}
+	else
+	{
+		printf(
+			"ICMP: type %hu, code %hu, size %zu\n",
+			header->type, header->code, size
+		);
+	}
 }
 
 static inline void			ping_response_print(
@@ -106,11 +116,14 @@ static inline void			ping_response_print(
 		{
 			ping_ip_header_print(response);
 		}
+
+		ping_icmp_header_print(response);
 	}
 }
 
-static inline bool		ping_response_match(const icmp_response_packet *response,
-	const ping_params *params, uint16_t sequence)
+static inline bool		ping_response_match(
+	const icmp_response_packet *response, const ping_params *params,
+	uint16_t sequence)
 {
 	return response->icmp_header.type != ICMP_ECHO
 		&& (response->icmp_header.type != ICMP_ECHOREPLY
