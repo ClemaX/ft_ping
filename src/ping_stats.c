@@ -1,13 +1,9 @@
 #include <arpa/inet.h>
-
-#include <stdio.h>
 #include <math.h>
 
-#include <libft/memory.h>
-
-#include <time_utils.h>
 #include <ping.h>
 
+#include <libft/memory.h>
 
 void	ping_stats_init(ping_stats *stats, const char *host_name,
 	const struct sockaddr_in *destination)

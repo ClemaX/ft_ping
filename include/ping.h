@@ -1,6 +1,8 @@
 #ifndef PING_H
 # define PING_H
 
+#include <netinet/in.h>
+#include <sys/socket.h>
 # include <sys/time.h>
 
 # include <stdint.h>
@@ -47,6 +49,7 @@ typedef struct	ping_stats
 typedef struct	ping_params
 {
 	icmp_echo_params	icmp;
+	struct sockaddr_in	destination;
 	const char			*host_name;
 	uint64_t			count;
 	float				interval_s;
@@ -55,7 +58,11 @@ typedef struct	ping_params
 
 int			ping(int sd, const ping_params *params, ping_stats *stats);
 
-int			ping_params_init(ping_params *params, int ac, const char **av);
+int			ping_params_init(ping_params *params, const char **av,
+	int *opt_end);
+int			ping_params_perror(const char *name, const char *message);
+int			ping_params_args_next(int ai, const char **av);
+
 int			ping_socket_init(ping_params *params);
 
 void		ping_stats_init(ping_stats *stats, const char *host_name,

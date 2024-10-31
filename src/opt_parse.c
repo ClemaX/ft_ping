@@ -1,11 +1,10 @@
 #include <limits.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include <libft/numbers.h>
-#include <icmp_echo.h>
 
 #include <ping.h>
-#include <stdlib.h>
 
 const char	*opt_parse_ttl(const char **av, int *ai, void *data)
 {

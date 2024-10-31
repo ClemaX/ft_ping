@@ -1,13 +1,13 @@
 #include <arpa/inet.h>
 #include <signal.h>
-#include <stdint.h>
 #include <unistd.h>
 
-#include <socket_utils.h>
-#include <time_utils.h>
 #include <ping.h>
 
-static volatile sig_atomic_t	loop_done;
+#include <time_utils.h>
+#include <socket_utils.h>
+
+static volatile sig_atomic_t	loop_done = 0;
 
 static void					ping_loop_on_interrupt(int signo)
 {
@@ -142,12 +142,16 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 	int									status;
 	bool								is_reply;
 
-	status = icmp_echo_send(sd, &params->icmp, sequence, &t[0]);
+	status = icmp_echo_send(sd, &params->destination, &params->icmp, sequence,
+		&t[0]);
 
 	if (status != 0)
 		return status;
 
 	++stats->transmitted;
+
+	if (loop_done)
+		return status;
 
 	do {
 		status = icmp_echo_recv(sd, &params->icmp, &response, &t[1]);
@@ -180,14 +184,11 @@ static inline int			ping_loop_start(int sd, const ping_params *params,
 	int			status;
 	uint16_t	sequence;
 
-	loop_done = 0;
-
 	signal(SIGINT, ping_loop_on_interrupt);
 
 	sequence = PING_SEQ_START;
 
-	while (!loop_done)
-	{
+	do {
 		status = ping_loop_on_tick(sd, params, sequence++, stats, &elapsed_ms);
 
 		if (loop_done || status & ICMP_ECHO_EINTR
@@ -197,6 +198,7 @@ static inline int			ping_loop_start(int sd, const ping_params *params,
 		if (elapsed_ms >= 0 && elapsed_ms < 1000)
 			usleep((1000 - elapsed_ms) * 1000);
 	}
+	while (!loop_done);
 
 	return status & ~ICMP_ECHO_EINTR;
 }
@@ -223,11 +225,17 @@ int							ping_socket_init(ping_params *params)
 int							ping(int sd, const ping_params *params,
 	ping_stats *stats)
 {
-	ping_stats_init(stats, params->host_name, &params->icmp.destination);
+	int	status;
+
+	ping_stats_init(stats, params->host_name, &params->destination);
 
 	printf("PING %s (%s): %zu data bytes\n",
 		stats->host_name, stats->host_presentation,
 		sizeof(((icmp_echo_packet*)NULL)->payload));
 
-	return ping_loop_start(sd, params, stats);
+	status = ping_loop_start(sd, params, stats);
+
+	ping_stats_print(stats);
+
+	return status;
 }

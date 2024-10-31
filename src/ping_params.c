@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <unistd.h>
 
 #include <ping.h>
 
@@ -51,26 +51,19 @@ static const opt_spec	opt_specs[] =
 	},
 };
 
-static inline int		ping_gai_perror(const char *name, int error)
+int						ping_params_perror(const char *name, const char *message)
 {
-	const char	*message;
-
-	if (error == EAI_NONAME)
-		message = "unknown host";
-	else
-		message = gai_strerror(error);
-
 	fprintf(stderr, "%s: %s\n", name, message);
+		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
+			name, " hostname");
 
-	return error;
+	return OPT_ERROR;
 }
 
-int						ping_params_init(ping_params *params, int ac,
-	const char **av)
+int						ping_params_init(ping_params *params, const char **av,
+	int *opt_end)
 {
-	struct addrinfo	*addresses;
-	int				ai;
-	int				error;
+	int	status;
 
 	*params = (ping_params)
 	{
@@ -82,36 +75,32 @@ int						ping_params_init(ping_params *params, int ac,
 		.interval_s = 1,
 	};
 
-	ai = 1;
+	*opt_end = 1;
 
 	params->options = opts_get(opt_specs,
-		sizeof(opt_specs) / sizeof(*opt_specs), av, &ai, params);
+		sizeof(opt_specs) / sizeof(*opt_specs), av, opt_end, params);
 
-	error = params->options == OPT_ERROR;
-	if (error || params->options & OPT_HELP)
+	status = params->options == OPT_ERROR;
+	if (status || params->options & OPT_HELP)
 	{
 		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
 			av[0], " hostname");
-		return error;
+		return status;
 	}
 
-	error = -(ac - ai < 1);
-	if (error)
+
+#if SOCKET_ICMP_USE_DGRAM
+	if (params.icmp.socket_type == SOCK_RAW)
+#endif
 	{
-		fprintf(stderr, "%s: missing host operand\n", av[0]);
-		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
-			av[0], " hostname");
-		return error;
+		params->icmp.id = getpid();
 	}
 
-	params->host_name = av[ai];
+	return status;
+}
 
-	error = ip_host_address(&addresses, params->host_name, NULL);
-	if (error)
-		return ping_gai_perror(av[0], error);
-
-	params->icmp.destination = *(struct sockaddr_in*)addresses->ai_addr;
-	freeaddrinfo(addresses);
-
-	return error;
+int					ping_params_args_next(int ai, const char **av)
+{
+	return args_next(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs),
+		ai, av);
 }
