@@ -25,6 +25,8 @@ int			main(int ac, const char **av)
 		return status;
 	}
 
+	setlinebuf(stdout);
+
 #if SOCKET_ICMP_USE_DGRAM
 	if (params.icmp.socket_type == SOCK_RAW)
 #endif
