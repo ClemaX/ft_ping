@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -43,6 +44,9 @@ int			main(int ac, const char **av)
 	}
 
 	ping_stats_print(&stats);
+
+	if (status == 0)
+		status = stats.received == 0;
 
 	return status;
 }
