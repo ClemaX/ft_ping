@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -eux
+
 NETNS_MAJOR=net
 
 INTERFACE_TYPE=veth
@@ -18,7 +20,7 @@ netns.up() # minor [subnet_cidr]
 	ip netns add "$netns_name"
 
 	# Add bridged virtual interface
-	ip link add "$interace_name" type "$INTERFACE_TYPE" peer name "$interface_bridge_name"
+	ip link add "$interface_name" type "$INTERFACE_TYPE" peer name "$interface_bridge_name"
 
 	# Associate virtual interface with netns
 	ip link set "$interface_name" netns "$netns_name"
