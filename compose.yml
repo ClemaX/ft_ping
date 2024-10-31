@@ -1,0 +1,28 @@
+services:
+  alice:
+    image: ft_ping
+
+    build: .
+
+    sysctls:
+      - "net.ipv4.ping_group_range=1000 1000"
+
+    develop:
+      watch:
+      - action: rebuild
+        path: src
+      - action: rebuild
+        path: include
+      - action: rebuild
+        path: Makefile
+
+    command: [ "./ft_ping", "bob" ]
+  
+  bob:
+    image: debian:stable-slim
+
+    command: [ "tail", "-f", "/dev/null" ]
+
+  charles:
+    extends: alice
+    command: [ "ping", "bob" ]
