@@ -1,6 +1,4 @@
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 
 #include <ping.h>
 
@@ -53,6 +51,20 @@ static const opt_spec	opt_specs[] =
 	},
 };
 
+static inline int		ping_gai_perror(const char *name, int error)
+{
+	const char	*message;
+
+	if (error == EAI_NONAME)
+		message = "unknown host";
+	else
+		message = gai_strerror(error);
+
+	fprintf(stderr, "%s: %s\n", name, message);
+
+	return error;
+}
+
 int						ping_params_init(ping_params *params, int ac,
 	const char **av)
 {
@@ -96,10 +108,7 @@ int						ping_params_init(ping_params *params, int ac,
 
 	error = ip_host_address(&addresses, params->host_name, NULL);
 	if (error)
-	{
-		fprintf(stderr, "%s: %s: %s\n", av[0], params->host_name, gai_strerror(error));
-		return error;
-	}
+		return ping_gai_perror(av[0], error);
 
 	params->icmp.destination = *(struct sockaddr_in*)addresses->ai_addr;
 	freeaddrinfo(addresses);
