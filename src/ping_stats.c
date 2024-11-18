@@ -30,7 +30,7 @@ void	ping_stats_print(const ping_stats *stats)
 
 	printf(
 		"--- %s ping statistics ---\n"
-		"%u packets transmitted, %u received"
+		"%u packets transmitted, %u packets received"
 		", %.0f%% packet loss, time %.0lfms\n",
 		stats->host_name,
 		stats->transmitted, stats->received,
@@ -40,7 +40,7 @@ void	ping_stats_print(const ping_stats *stats)
 #else
 	printf(
 		"--- %s ping statistics ---\n"
-		"%u packets transmitted, %u received"
+		"%u packets transmitted, %u packets received"
 		", %.0f%% packet loss\n",
 		stats->host_name,
 		stats->transmitted, stats->received,
