@@ -180,6 +180,7 @@ static inline float		ping_loop_on_tick(int sd, const ping_params *params,
 static inline int			ping_loop_start(int sd, const ping_params *params,
 	ping_stats *stats)
 {
+	const uint	sleep_duration = params->interval_s * 1000;
 	float		elapsed_ms;
 	int			status;
 	uint16_t	sequence;
@@ -195,8 +196,8 @@ static inline int			ping_loop_start(int sd, const ping_params *params,
 		|| (params->count != 0 && sequence == params->count + PING_SEQ_START))
 			break;
 
-		if (elapsed_ms >= 0 && elapsed_ms < 1000)
-			usleep((1000 - elapsed_ms) * 1000);
+		if (elapsed_ms >= 0 && elapsed_ms < sleep_duration)
+			usleep((sleep_duration - elapsed_ms) * sleep_duration);
 	}
 	while (!loop_done);
 
