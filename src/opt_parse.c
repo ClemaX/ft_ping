@@ -6,7 +6,8 @@
 
 #include <ping.h>
 
-const char	*opt_parse_ttl(const char **av, int *ai, void *data)
+const char	*opt_parse_ttl(const char **av, int *ai, size_t param_offset,
+	void *data)
 {
 	ping_params *const	params = (ping_params*)data;
 	const char			*end;
@@ -15,10 +16,10 @@ const char	*opt_parse_ttl(const char **av, int *ai, void *data)
 	if (av == NULL)
 		return "N";
 
-	if (av[*ai] == NULL || av[*ai][0] == '\0')
+	if (av[*ai] == NULL || av[*ai][param_offset] == '\0')
 		return "ttl: a value must be provided";
 
-	value = ft_strtol(av[*ai], &end, 0);
+	value = ft_strtol(av[*ai] + param_offset, &end, 0);
 
 	if (*end != '\0' && value != LONG_MAX && value != LONG_MIN)
 		return "ttl: number expected";
@@ -33,7 +34,8 @@ const char	*opt_parse_ttl(const char **av, int *ai, void *data)
 	return NULL;
 }
 
-const char	*opt_parse_count(const char **av, int *ai, void *data)
+const char	*opt_parse_count(const char **av, int *ai, size_t param_offset,
+	void *data)
 {
 	ping_params *const	params = (ping_params*)data;
 	const char			*end;
@@ -42,10 +44,10 @@ const char	*opt_parse_count(const char **av, int *ai, void *data)
 	if (av == NULL)
 		return "N";
 
-	if (av[*ai] == NULL || av[*ai][0] == '\0')
+	if (av[*ai] == NULL || av[*ai][param_offset] == '\0')
 		return "count: a value must be provided";
 
-	value = ft_strtol(av[*ai], &end, 0);
+	value = ft_strtol(av[*ai] + param_offset, &end, 0);
 
 	if (*end != '\0' && errno != ERANGE)
 		return "count: number expected";
@@ -63,7 +65,8 @@ const char	*opt_parse_count(const char **av, int *ai, void *data)
 	return NULL;
 }
 
-const char	*opt_parse_interval(const char **av, int *ai, void *data)
+const char	*opt_parse_interval(const char **av, int *ai, size_t param_offset,
+	void *data)
 {
 	ping_params *const	params = (ping_params*)data;
 	char				*end;
@@ -72,10 +75,10 @@ const char	*opt_parse_interval(const char **av, int *ai, void *data)
 	if (av == NULL)
 		return "N";
 
-	if (av[*ai] == NULL || av[*ai][0] == '\0')
+	if (av[*ai] == NULL || av[*ai][param_offset] == '\0')
 		return "interval: a value must be provided";
 
-	value = strtof(av[*ai], &end);
+	value = strtof(av[*ai] + param_offset, &end);
 
 	if (*end != '\0' && errno != ERANGE)
 		return "interval: number expected";
@@ -90,7 +93,8 @@ const char	*opt_parse_interval(const char **av, int *ai, void *data)
 	return NULL;
 }
 
-const char	*opt_parse_tos(const char **av, int *ai, void *data)
+const char	*opt_parse_tos(const char **av, int *ai, size_t param_offset,
+	void *data)
 {
 	ping_params *const	params = (ping_params*)data;
 	const char			*end;
@@ -99,10 +103,10 @@ const char	*opt_parse_tos(const char **av, int *ai, void *data)
 	if (av == NULL)
 		return "N";
 
-	if (av[*ai] == NULL || av[*ai][0] == '\0')
+	if (av[*ai] == NULL || av[*ai][param_offset] == '\0')
 		return "tos: a value must be provided";
 
-	value = ft_strtol(av[*ai], &end, 0);
+	value = ft_strtol(av[*ai] + param_offset, &end, 0);
 
 	if (*end != '\0' && errno != ERANGE)
 		return "tos: number expected";

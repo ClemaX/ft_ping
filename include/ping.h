@@ -70,9 +70,13 @@ void		ping_stats_init(ping_stats *stats, const char *host_name,
 void		ping_stats_print(const ping_stats *stats);
 void		ping_stats_update(ping_stats *stats, float elapsed_ms);
 
-const char	*opt_parse_ttl(const char **av, int *ai, void *data);
-const char	*opt_parse_tos(const char **av, int *ai, void *data);
-const char	*opt_parse_count(const char **av, int *ai, void *data);
-const char	*opt_parse_interval(const char **av, int *ai, void *data);
+const char	*opt_parse_ttl(const char **av, int *ai, size_t param_offset,
+	void *data);
+const char	*opt_parse_tos(const char **av, int *ai, size_t param_offset,
+	void *data);
+const char	*opt_parse_count(const char **av, int *ai, size_t param_offset,
+	void *data);
+const char	*opt_parse_interval(const char **av, int *ai, size_t param_offset,
+	void *data);
 
 #endif
